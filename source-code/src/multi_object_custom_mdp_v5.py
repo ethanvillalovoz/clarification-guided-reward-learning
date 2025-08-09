@@ -748,15 +748,15 @@ class Gridworld():
 
             ax1.scatter(loc[0], loc[1], color=color, s=500, alpha=0.99)
             if type_o[:3] == (1, 1, 1):
-                ab = AnnotationBbox(getImage('data/images/redcup.jpeg'), (loc[0], loc[1]), frameon=False)
+                ab = AnnotationBbox(getImage('data/objects/redcup.jpeg'), (loc[0], loc[1]), frameon=False)
                 ax.add_artist(ab)
             if type_o[:3] == (2, 1, 1):
-                ab = AnnotationBbox(getImage('data/images/yellowcup.jpeg'), (loc[0], loc[1]), frameon=False)
+                ab = AnnotationBbox(getImage('data/objects/yellowcup.jpeg'), (loc[0], loc[1]), frameon=False)
                 ax.add_artist(ab)
             if type_o[:3] == (3, 1, 2):
                 # We don't have a purple bowl image, so using a placeholder
                 # You may want to create or add a proper image for this
-                ab = AnnotationBbox(getImage('data/images/redcup.jpeg'), (loc[0], loc[1]), frameon=False)
+                ab = AnnotationBbox(getImage('data/objects/redcup.jpeg'), (loc[0], loc[1]), frameon=False)
                 ax.add_artist(ab)
 
         offset = 0.1
