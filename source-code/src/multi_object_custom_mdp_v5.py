@@ -771,7 +771,12 @@ class Gridworld():
             ax1.set_title(f"State at Time {timestep}: FINAL STATE")
         else:
             ax1.set_title(f"State at Time {timestep}")
-        plt.savefig(f"rollouts/state_{timestep}.png")
+        
+        # Create the rollouts directory if it doesn't exist
+        import os
+        os.makedirs("../rollouts", exist_ok=True)
+
+        plt.savefig(f"../rollouts/state_{timestep}.png")
 
         plt.show()
         plt.close()
