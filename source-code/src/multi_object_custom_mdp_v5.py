@@ -408,36 +408,60 @@ class Gridworld():
 
     # grabs the quadrant location of the objects within the current_state
     def check_quadrant(self, input_state):
+        """
+        Determine the quadrant location for each object in the current state.
+        
+        Quadrants are defined as:
+        - Q1: Positive X, Positive Y (top right)
+        - Q2: Negative X, Positive Y (top left)
+        - Q3: Negative X, Negative Y (bottom left)
+        - Q4: Positive X, Negative Y (bottom right)
+        
+        Special cases for axes:
+        - Origin (0,0): Considered Q2
+        - Positive X-axis: Q1
+        - Negative X-axis: Q2
+        - Positive Y-axis: Q2
+        - Negative Y-axis: Q3
+        
+        Parameters:
+        -----------
+        input_state : dict
+            The current state of the environment
+            
+        Returns:
+        --------
+        list
+            List of quadrant assignments for each object
+        """
         current_state = list(copy.deepcopy(input_state))
         quadrant_list = []
 
         for i in range(0, len(current_state) - 1):
-            # the position is on the origin
-            if input_state[current_state[i]]['pos'] == (0, 0):
-                quadrant_list.append(['Q2'])
-            # the position is between the Q1 and Q4 on the x-axis
-            elif input_state[current_state[i]]['pos'][0] > 0 and input_state[current_state[i]]['pos'][1] == 0:
-                quadrant_list.append(['Q1'])
-            # the position is between the Q2 and Q3 on the x-axis
-            elif input_state[current_state[i]]['pos'][0] < 0 and input_state[current_state[i]]['pos'][1] == 0:
-                quadrant_list.append(['Q2'])
-            # the position is between the Q1 and Q2 on the y-axis
-            elif input_state[current_state[i]]['pos'][0] == 0 and input_state[current_state[i]]['pos'][1] > 0:
-                quadrant_list.append(['Q2'])
-            # the position is between the Q3 and Q4 on the y-axis
-            elif input_state[current_state[i]]['pos'][0] == 0 and input_state[current_state[i]]['pos'][1] < 0:
-                quadrant_list.append(['Q3'])
-            # the position is within Q1
-            elif input_state[current_state[i]]['pos'][0] > 0 and input_state[current_state[i]]['pos'][1] > 0:
-                quadrant_list.append(['Q1'])
-            # the position is within Q2
-            elif input_state[current_state[i]]['pos'][0] < 0 and input_state[current_state[i]]['pos'][1] > 0:
-                quadrant_list.append(['Q2'])
-            # the position is within Q3
-            elif input_state[current_state[i]]['pos'][0] < 0 and input_state[current_state[i]]['pos'][1] < 0:
-                quadrant_list.append(['Q3'])
-            # the position is within Q4
-            elif input_state[current_state[i]]['pos'][0] > 0 and input_state[current_state[i]]['pos'][1] < 0:
+            x, y = input_state[current_state[i]]['pos']
+            
+            # More concise quadrant determination logic
+            if x > 0:
+                if y > 0:
+                    quadrant_list.append(['Q1'])  # Q1: Positive X, Positive Y
+                elif y < 0:
+                    quadrant_list.append(['Q4'])  # Q4: Positive X, Negative Y
+                else:  # y == 0, on positive x-axis
+                    quadrant_list.append(['Q1'])
+            elif x < 0:
+                if y > 0:
+                    quadrant_list.append(['Q2'])  # Q2: Negative X, Positive Y
+                elif y < 0:
+                    quadrant_list.append(['Q3'])  # Q3: Negative X, Negative Y
+                else:  # y == 0, on negative x-axis
+                    quadrant_list.append(['Q2'])
+            else:  # x == 0, on y-axis
+                if y > 0:
+                    quadrant_list.append(['Q2'])  # On positive y-axis
+                elif y < 0:
+                    quadrant_list.append(['Q3'])  # On negative y-axis
+                else:  # Origin (0,0)
+                    quadrant_list.append(['Q2'])
                 quadrant_list.append(['Q4'])
 
         return quadrant_list
@@ -453,6 +477,10 @@ class Gridworld():
             for attr in attributes:
                 if attr in preferences:
                     return self.get_reward_value(preferences[attr], attributes, quadrants)
+        
+        # Add default return value if no match is found
+        print(f"Warning: No preference found for attributes {attributes} in quadrant {quadrants}")
+        return 0  # Default reward value
 
     # retrieves the reward value that should be used to assign to the step reward for the current location of the object
     def lookup_quadrant_reward(self, input_state):
@@ -595,7 +623,9 @@ class Gridworld():
             # if state has not been visited, add it to the set of visited states
             if state_tup not in visited_states:
                 visited_states.add(state_tup)
-                print("Total visited States:", len(visited_states))
+                # Only print status every 100 states to reduce console output
+                if len(visited_states) % 100 == 0:
+                    print(f"Enumerating states: {len(visited_states)} visited so far...")
 
             # get the neighbors of this state by looping through possible actions
             for idx, action in enumerate(actions):
@@ -656,23 +686,34 @@ class Gridworld():
         return transition_mat, reward_mat, state_to_idx, idx_to_action, idx_to_state, action_to_idx
 
     def vectorized_vi(self):
-        # def spatial_environment(transitions, rewards, epsilson=0.0001, gamma=0.99, maxiter=10000):
         """
-        Parameters
-        ----------
-            transitions : array_like
-                Transition probability matrix. Of size (# states, # states, # actions).
-            rewards : array_like
-                Reward matrix. Of size (# states, # actions).
-            epsilson : float, optional
-                The convergence threshold. The default is 0.0001.
-            gamma : float, optional
-                The discount factor. The default is 0.99.
-            maxiter : int, optional
-                The maximum number of iterations. The default is 10000.
+        Performs vectorized value iteration to find the optimal policy.
+        
+        This method uses the environment's transition and reward matrices to compute
+        an optimal value function and policy using dynamic programming. The algorithm
+        iteratively updates state values until convergence or until reaching the maximum
+        number of iterations.
+        
+        The method uses instance variables:
+        - transitions: Transition probability matrix of size (# states, # states, # actions)
+        - rewards: Reward matrix of size (# states, # actions)
+        - epsilon: Convergence threshold (default: 0.0001)
+        - gamma: Discount factor (default: 0.99) 
+        - maxiter: Maximum number of iterations (default: 10000)
+        
         Returns
         -------
-            value_function : array_like
+        tuple
+            (value_function, Q_values, policy) where:
+            - value_function: Array of optimal state values
+            - Q_values: State-action values 
+            - policy: Dictionary mapping states to optimal actions
+        
+        Notes
+        -----
+        The implementation uses efficient vectorized operations for speed but
+        may be memory-intensive for environments with large state spaces.
+        
                 The value function. Of size (# states, 1).
             pi : array_like
                 The optimal policy. Of size (# states, 1).
@@ -687,7 +728,9 @@ class Gridworld():
         policy = {}
 
         for i in range(self.maxiter):
-            print("vi iteration: ", i)
+            # Only print status occasionally to reduce output spam
+            if i % 100 == 0:
+                print(f"Value iteration progress: {i}/{self.maxiter} iterations")
             # initalize delta
             delta = 0
             # perform Bellman update
@@ -720,7 +763,14 @@ class Gridworld():
             zoom = 0.025
             # Adjust path to look one directory up for the data folder
             corrected_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), path)
-            return OffsetImage(plt.imread(corrected_path), zoom=zoom)
+            try:
+                return OffsetImage(plt.imread(corrected_path), zoom=zoom)
+            except FileNotFoundError:
+                print(f"Warning: Image file not found: {corrected_path}")
+                # Return a colored square as fallback
+                fallback = np.ones((100, 100, 4))
+                fallback[:,:,0:3] = np.array([0.8, 0.8, 0.8])  # Gray color
+                return OffsetImage(fallback, zoom=zoom)
 
         plot_init_state = copy.deepcopy(current_state)
 
@@ -747,17 +797,63 @@ class Gridworld():
             type_to_loc_init[type_o] = loc
 
             ax1.scatter(loc[0], loc[1], color=color, s=500, alpha=0.99)
-            if type_o[:3] == (1, 1, 1):
-                ab = AnnotationBbox(getImage('data/objects/redcup.jpeg'), (loc[0], loc[1]), frameon=False)
+            # Get color, object type, and material names for better error messages
+            color_name = COLORS_IDX.get(type_o[0], 'unknown')
+            object_name = OBJECTS_IDX.get(type_o[1], 'unknown')
+            material_name = MATERIALS_IDX.get(type_o[2], 'unknown')
+            
+            # Try to load object-specific image based on color and type
+            image_path = f'data/objects/{color_name}{object_name}.jpeg'
+            
+            # Check if this specific combination exists
+            if os.path.exists(os.path.join(os.path.dirname(os.path.dirname(__file__)), image_path)):
+                ab = AnnotationBbox(getImage(image_path), (loc[0], loc[1]), frameon=False)
                 ax.add_artist(ab)
-            if type_o[:3] == (2, 1, 1):
-                ab = AnnotationBbox(getImage('data/objects/yellowcup.jpeg'), (loc[0], loc[1]), frameon=False)
-                ax.add_artist(ab)
-            if type_o[:3] == (3, 1, 2):
-                # We don't have a purple bowl image, so using a placeholder
-                # You may want to create or add a proper image for this
-                ab = AnnotationBbox(getImage('data/objects/redcup.jpeg'), (loc[0], loc[1]), frameon=False)
-                ax.add_artist(ab)
+            else:
+                # Fall back to type-specific images
+                if type_o[:3] == (1, 1, 1):  # Red cup
+                    ab = AnnotationBbox(getImage('data/objects/redcup.jpeg'), (loc[0], loc[1]), frameon=False)
+                    ax.add_artist(ab)
+                elif type_o[:3] == (2, 1, 1):  # Yellow cup
+                    ab = AnnotationBbox(getImage('data/objects/yellowcup.jpeg'), (loc[0], loc[1]), frameon=False)
+                    ax.add_artist(ab)
+                else:
+                    # Create a fallback colored shape based on object properties
+                    print(f"Creating fallback visualization for: {color_name} {material_name} {object_name}")
+                    
+                    # Create a color-coded fallback image
+                    img = np.ones((100, 100, 4))
+                    
+                    # Set color based on object color
+                    if type_o[0] == 1:  # Red
+                        img[:,:,0] = 0.9  # R
+                        img[:,:,1] = 0.2  # G
+                        img[:,:,2] = 0.2  # B
+                    elif type_o[0] == 2:  # Yellow
+                        img[:,:,0] = 0.9  # R
+                        img[:,:,1] = 0.9  # G
+                        img[:,:,2] = 0.2  # B
+                    elif type_o[0] == 3:  # Purple
+                        img[:,:,0] = 0.6  # R
+                        img[:,:,1] = 0.2  # G
+                        img[:,:,2] = 0.8  # B
+                    
+                    # Set shape based on object type
+                    if type_o[1] == 1:  # Cup - use circle
+                        radius = 40
+                        center = (50, 50)
+                        y, x = np.ogrid[:100, :100]
+                        mask = (x - center[0])**2 + (y - center[1])**2 > radius**2
+                        img[mask] = [1, 1, 1, 0]  # Transparent outside circle
+                    elif type_o[1] == 2:  # Bowl - use ellipse
+                        radius_x, radius_y = 45, 30
+                        center = (50, 50)
+                        y, x = np.ogrid[:100, :100]
+                        mask = (x - center[0])**2 / radius_x**2 + (y - center[1])**2 / radius_y**2 > 1
+                        img[mask] = [1, 1, 1, 0]  # Transparent outside ellipse
+                    
+                    ab = AnnotationBbox(OffsetImage(img, zoom=0.025), (loc[0], loc[1]), frameon=False)
+                    ax.add_artist(ab)
 
         offset = 0.1
         top_offset = -0.9
