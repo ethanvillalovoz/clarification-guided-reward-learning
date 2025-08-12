@@ -462,7 +462,7 @@ class Gridworld():
                     quadrant_list.append(['Q3'])  # On negative y-axis
                 else:  # Origin (0,0)
                     quadrant_list.append(['Q2'])
-                quadrant_list.append(['Q4'])
+                # Removed incorrect Q4 append that was causing a bug
 
         return quadrant_list
 
@@ -870,9 +870,14 @@ class Gridworld():
         
         # Create the rollouts directory if it doesn't exist
         import os
-        os.makedirs("../rollouts", exist_ok=True)
-
-        plt.savefig(f"../rollouts/state_{timestep}.png")
+        # Use relative path from the current script location
+        rollout_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "rollouts")
+        os.makedirs(rollout_dir, exist_ok=True)
+        
+        # Save figure with absolute path
+        save_path = os.path.join(rollout_dir, f"state_{timestep}.png")
+        plt.savefig(save_path)
+        print(f"Saved state image to: {save_path}")
 
         plt.show()
         plt.close()
