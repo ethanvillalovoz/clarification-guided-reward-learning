@@ -1370,12 +1370,25 @@ class Gridworld:
         beliefs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "beliefs")
         os.makedirs(beliefs_dir, exist_ok=True)
         
-        # Add a unique identifier based on process ID and time to prevent overwriting
-        unique_id = os.getpid() % 1000  # Use process ID for uniqueness
-        timestamp = int(time.time() % 10000)  # Current time in seconds (shortened)
+        # Create more descriptive filename with state type and object information
+        state_type_short = "initial"
+        if state_type == "robot_moved":
+            state_type_short = "robot"
+        elif state_type == "human_corrected":
+            state_type_short = "human"
+        elif current_state['exit']:
+            state_type_short = "final"
+            
+        # Get object information for filename
+        object_info_short = ""
+        if object_moving is not None:
+            # Get short object description (color + object type)
+            color_name = COLORS_IDX.get(object_moving[0], "").lower()
+            object_name = OBJECTS_IDX.get(object_moving[2], "").lower()
+            object_info_short = f"_{color_name}{object_name}"
         
-        # Save figure with absolute path and unique identifier with higher DPI for publication quality
-        save_path = os.path.join(rollout_dir, f"state_{unique_id}_{timestamp}_{timestep}.png")
+        # Save figure with descriptive name and higher DPI for publication quality
+        save_path = os.path.join(rollout_dir, f"time{timestep}_{state_type_short}{object_info_short}.png")
         plt.savefig(save_path, dpi=300, bbox_inches='tight', facecolor='white')
         print(f"Saved state image to: {save_path}")
 
