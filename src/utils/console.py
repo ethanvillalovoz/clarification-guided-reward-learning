@@ -383,6 +383,38 @@ class ConsoleFormatter:
             cls.info(title, indent=indent, color="magenta", bold=True)
             
         # Create a list of (label, belief) pairs and sort by belief
+        belief_items = [(labels[i], float(beliefs[i]), i) for i in range(len(beliefs))]
+        # Sort by belief value in descending order
+        belief_items.sort(key=lambda x: x[1], reverse=True)
+        
+        # Filter based on threshold and display
+        filtered_items = [item for item in belief_items if item[1] >= threshold]
+        
+        if filtered_items:
+            # Print header
+            cls.info("", indent=indent)
+            cls.info(f"{'Model':<15} {'Belief':>10} {'Index':>8}", 
+                    indent=indent, color="cyan", bold=True)
+            cls.info(f"{'-'*15:<15} {'-'*10:>10} {'-'*8:>8}", 
+                    indent=indent, color="cyan")
+            
+            # Print each belief value with formatting
+            for label, belief, idx in filtered_items:
+                formatted_belief = f"{belief:.4f}"
+                model_name = f"{label}"
+                if len(model_name) > 15:
+                    model_name = model_name[:12] + "..."
+                
+                if belief == max(beliefs):
+                    cls.info(f"{model_name:<15} {formatted_belief:>10} {idx:>8}", 
+                            indent=indent, color="green", bold=True)
+                else:
+                    cls.info(f"{model_name:<15} {formatted_belief:>10} {idx:>8}", 
+                            indent=indent)
+        else:
+            cls.info("No beliefs above threshold", indent=indent, color="yellow")
+            
+        cls.info("", indent=indent)
         belief_pairs = [(label, float(belief)) for label, belief in zip(labels, beliefs)]
         belief_pairs.sort(key=lambda x: x[1], reverse=True)
         

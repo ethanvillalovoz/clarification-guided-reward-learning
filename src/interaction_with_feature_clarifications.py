@@ -651,10 +651,33 @@ def ask_feature_clarification_question(robot_beliefs, hypothesis_reward_space,
         log.debug(f"Identified relevant features: {relevant_features}", indent=2)
         hyp_idx_to_relevant_features[hyp_idx] = relevant_features
 
-    # ask question
-    # ideally, we have question = get_llm_query(hyp_idx_to_relevant_features), but for now, we will do this naively
+    # Display an enhanced clarification question
+    log.subsection("FEATURE CLARIFICATION QUESTION", color="yellow", bold=True)
+    
+    # Format object details
+    object_details = [
+        ("Object Type", object_type, "cyan"),
+        ("Color", color, color),  # Use color name as the color
+        ("Material", material, "magenta")
+    ]
+    
+    # Display object information in a visually appealing way
+    log.info("I need to understand which features influenced your decision:", indent=1, bold=True)
+    log.info("", indent=1)
+    log.info("Object Details:", indent=1, color="blue", bold=True)
+    for label, value, color_code in object_details:
+        log.result(f"{label}", f"{value}", indent=2, label_color="blue", value_color=color_code)
+    
+    log.info("", indent=1)
+    log.info("Question:", indent=1, color="yellow", bold=True)
+    log.info("For this object, which features influenced where it should be placed?", indent=2)
+    log.info("Options: color, type, material (provide comma-separated responses)", indent=2, color="green")
+    log.info("", indent=1)
+    
+    # Get human response with clear prompt
     true_relevant_features = []
-    human_response = input(f"for the recent {attributes} object, which features of [color, type, and material] were relevant to the location it should be in? (give comma separated responses)")
+    print("\033[1m\033[93m> Your answer:\033[0m ", end="")
+    human_response = input("")
     if 'type' in human_response:
         true_relevant_features.append(object_type)
     if 'color' in human_response:
