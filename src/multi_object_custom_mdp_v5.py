@@ -916,200 +916,443 @@ class Gridworld:
         """
         import os
         import time
+        import matplotlib as mpl
         from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+        from matplotlib.patches import Rectangle, FancyBboxPatch, Circle, Arrow
+        
+        # Set up a professional visualization style
+        plt.style.use('seaborn-v0_8-whitegrid')
 
         def getImage(path, zoom=0.025):
             """Helper function to load and resize images for visualization"""
             # Adjust path to look one directory up for the data folder
             corrected_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), path)
             try:
-                return OffsetImage(plt.imread(corrected_path), zoom=zoom)
+                image = plt.imread(corrected_path)
+                # Add a subtle border to the image
+                if image.shape[2] == 4:  # Has alpha channel
+                    # Add a thin dark border around the image edges (2 pixels)
+                    border_width = 2
+                    image[:border_width, :, 3] = 1.0  # Top border
+                    image[-border_width:, :, 3] = 1.0  # Bottom border
+                    image[:, :border_width, 3] = 1.0  # Left border
+                    image[:, -border_width:, 3] = 1.0  # Right border
+                    
+                    image[:border_width, :, 0:3] = 0.2  # Dark color
+                    image[-border_width:, :, 0:3] = 0.2
+                    image[:, :border_width, 0:3] = 0.2
+                    image[:, -border_width:, 0:3] = 0.2
+                
+                return OffsetImage(image, zoom=zoom)
             except FileNotFoundError:
                 print(f"Warning: Image file not found: {corrected_path}")
-                # Return a colored square as fallback
+                # Return a colored square as fallback with better styling
                 fallback = np.ones((100, 100, 4))
-                fallback[:,:,0:3] = np.array([0.8, 0.8, 0.8])  # Gray color
+                fallback[:,:,0:3] = np.array([0.7, 0.7, 0.7])  # Gray color
+                
+                # Add a subtle border
+                border_width = 3
+                fallback[:border_width, :, 0:3] = 0.3  # Top border
+                fallback[-border_width:, :, 0:3] = 0.3  # Bottom border
+                fallback[:, :border_width, 0:3] = 0.3  # Left border
+                fallback[:, -border_width:, 0:3] = 0.3  # Right border
+                
                 return OffsetImage(fallback, zoom=zoom)
 
-        # Create figure
-        plt.figure(figsize=(10, 10))
+        # Create figure with scientific paper style
+        fig = plt.figure(figsize=(12, 10))
         ax = plt.gca()
         
-        # Add background grid lines
-        ax.grid(True, linestyle='--', alpha=0.6)
-        ax.axhline(y=0, color='black', linestyle='-', alpha=0.5)
-        ax.axvline(x=0, color='black', linestyle='-', alpha=0.5)
+        # Set professional-looking background
+        ax.set_facecolor('#f8f9fa')  # Light gray background
+        # Add customized grid lines
+        ax.grid(True, linestyle='-', alpha=0.3, linewidth=0.5, color='#cccccc')
         
-        # Highlight quadrants with light colors
-        ax.fill_between([0, self.x_max], 0, self.y_max, alpha=0.1, color='blue', label='Q1')
-        ax.fill_between([self.x_min, 0], 0, self.y_max, alpha=0.1, color='green', label='Q2')
-        ax.fill_between([self.x_min, 0], self.y_min, 0, alpha=0.1, color='red', label='Q3')
-        ax.fill_between([0, self.x_max], self.y_min, 0, alpha=0.1, color='purple', label='Q4')
+        # Add prominent axes
+        ax.axhline(y=0, color='#444444', linestyle='-', alpha=0.8, linewidth=2, zorder=1)
+        ax.axvline(x=0, color='#444444', linestyle='-', alpha=0.8, linewidth=2, zorder=1)
         
-        # Add quadrant labels
-        plt.text(2, 2, "Q1", fontsize=12, ha='center')
-        plt.text(-2, 2, "Q2", fontsize=12, ha='center')
-        plt.text(-2, -2, "Q3", fontsize=12, ha='center')
-        plt.text(2, -2, "Q4", fontsize=12, ha='center')
-
+        # Define a research-quality color palette for quadrants
+        quad_colors = ['#c6dbef', '#ccebc5', '#fdd0a2', '#e0ecf4']  # Professional blue, green, orange, light blue
+        quad_names = ['Q1', 'Q2', 'Q3', 'Q4']
+        quad_labels = ['Quadrant 1 (Upper Right)', 'Quadrant 2 (Upper Left)', 
+                      'Quadrant 3 (Lower Left)', 'Quadrant 4 (Lower Right)']
+        
+        # Draw quadrants as shaded rectangles with subtle borders
+        q1_rect = Rectangle((0, 0), self.x_max, self.y_max, 
+                           facecolor=quad_colors[0], alpha=0.3, edgecolor='#666666', 
+                           linewidth=0.8, zorder=0)
+        q2_rect = Rectangle((self.x_min, 0), abs(self.x_min), self.y_max, 
+                           facecolor=quad_colors[1], alpha=0.3, edgecolor='#666666', 
+                           linewidth=0.8, zorder=0)
+        q3_rect = Rectangle((self.x_min, self.y_min), abs(self.x_min), abs(self.y_min), 
+                           facecolor=quad_colors[2], alpha=0.3, edgecolor='#666666', 
+                           linewidth=0.8, zorder=0)
+        q4_rect = Rectangle((0, self.y_min), self.x_max, abs(self.y_min), 
+                           facecolor=quad_colors[3], alpha=0.3, edgecolor='#666666', 
+                           linewidth=0.8, zorder=0)
+        
+        # Add quadrant rectangles to plot
+        ax.add_patch(q1_rect)
+        ax.add_patch(q2_rect)
+        ax.add_patch(q3_rect)
+        ax.add_patch(q4_rect)
+        
+        # Add quadrant labels with enhanced styling
+        for i, (x, y, name) in enumerate([
+            (self.x_max/4, self.y_max/4, quad_names[0]),
+            (self.x_min/4, self.y_max/4, quad_names[1]),
+            (self.x_min/4, self.y_min/4, quad_names[2]),
+            (self.x_max/4, self.y_min/4, quad_names[3])
+        ]):
+            ax.text(x, y, name, fontsize=16, ha='center', va='center', 
+                   color='#333333', fontweight='bold', zorder=2,
+                   bbox=dict(facecolor='white', alpha=0.7, boxstyle='round,pad=0.3',
+                            edgecolor='#999999', linewidth=0.5))
+            
         # Add visual indication of exit state
         if current_state['exit']:
-            plt.axvspan(-6, 6, -6, 6, color='green', alpha=0.05)
-            ax.set_title(f"State at Time {timestep}: FINAL STATE", fontsize=14)
+            # Add a subtle green background for final state
+            plt.axvspan(self.x_min, self.x_max, self.y_min, self.y_max, color='green', alpha=0.05, zorder=-1)
+            plt.suptitle('Object Placement Environment', 
+                     fontsize=20, fontweight='bold', y=0.98, color='#333333')
+            plt.title(f"Final State (Time Step: {timestep})", 
+                    fontsize=16, pad=20, color='#007700', fontweight='bold')
         else:
-            ax.set_title(f"State at Time {timestep}", fontsize=14)
+            plt.suptitle('Object Placement Environment', 
+                     fontsize=20, fontweight='bold', y=0.98, color='#333333')
+            plt.title(f"Current State (Time Step: {timestep})", 
+                    fontsize=16, pad=20, color='#333333')
             
-        # Add a status display of each object's state in the corner
+        # Create detailed object status information
         status_text = []
+        status_text.append("Object Status:")
+        status_text.append("-"*25)
+        
         for idx, obj in enumerate(self.object_type_tuple):
             color_name = COLORS_IDX.get(obj[0], 'unknown')
             object_name = OBJECTS_IDX.get(obj[2], 'unknown')
+            material_name = MATERIALS_IDX.get(obj[1], 'unknown')
             is_done = current_state[obj]['done']
             current_pos = current_state[obj]['pos']
             
-            status = "✓" if is_done else "◯"
-            status_text.append(f"{status} {color_name} {object_name}: {current_pos}")
+            # Use unicode symbols for better visual indication
+            status = "✓" if is_done else "○"
             
-        # Create text box with object status
+            # Include all object properties and position
+            status_text.append(f"{status} {color_name.capitalize()} {material_name} {object_name}: {current_pos}")
+            
+        # Create research-grade status box
         status_box = '\n'.join(status_text)
-        props = dict(boxstyle='round', facecolor='wheat', alpha=0.4)
         ax.text(0.02, 0.98, status_box, transform=ax.transAxes, fontsize=10,
-                verticalalignment='top', bbox=props)
+                verticalalignment='top', family='monospace',
+                bbox=dict(boxstyle='round,pad=0.5', facecolor='white', 
+                         edgecolor='#666666', linewidth=1, alpha=0.9))
 
-        # Get color mappings for objects
+        # Create enhanced color mapping for object types with better colors
         type_to_color = {}
         for i in range(0, len(self.object_type_tuple)):
             object_tuple = self.object_type_tuple[i]
             color_idx = object_tuple[0]
-            type_to_color[object_tuple] = COLOR_DICTIONARY[color_idx]
+            # Use more vibrant research-grade colors from ColorBrewer palette
+            if color_idx == 1:  # Red
+                type_to_color[object_tuple] = '#e41a1c'  # Vibrant red
+            elif color_idx == 2:  # Yellow
+                type_to_color[object_tuple] = '#ff7f00'  # Vibrant orange
+            elif color_idx == 3:  # Purple
+                type_to_color[object_tuple] = '#984ea3'  # Vibrant purple
+            elif color_idx == 4:  # White
+                type_to_color[object_tuple] = '#f0f0f0'  # Off-white
+            else:
+                type_to_color[object_tuple] = '#333333'  # Dark gray for unknown
 
-        # Draw each object
+        # Draw each object with enhanced styling
         plot_init_state = copy.deepcopy(current_state)
         for type_o in self.object_type_tuple:
             loc = plot_init_state[type_o]['pos']
             color = type_to_color[type_o]
             is_done = plot_init_state[type_o]['done']
             
-            # Highlight active vs. inactive objects
-            edgecolor = 'red' if is_done else 'black'
-            linewidth = 2 if is_done else 1
-            alpha = 1.0 if is_done else 0.7
-            size = 220 if is_done else 200
+            # Enhanced styling for active vs. inactive objects
+            if is_done:
+                edgecolor = '#000000'
+                linewidth = 2.5
+                alpha = 1.0
+                size = 250
+                zorder = 15
+            else:
+                edgecolor = '#444444'
+                linewidth = 1.5
+                alpha = 0.8
+                size = 220
+                zorder = 10
             
-            # Create scatter point for object location
+            # Add a white halo/glow around placed objects for emphasis
+            if is_done:
+                ax.scatter(loc[0], loc[1], color='white', s=size+30, alpha=0.3, 
+                          edgecolor='white', linewidth=0, zorder=zorder-1)
+            
+            # Create enhanced scatter point for object location
             ax.scatter(loc[0], loc[1], color=color, s=size, alpha=alpha, 
-                      edgecolor=edgecolor, linewidth=linewidth, zorder=10)
+                      edgecolor=edgecolor, linewidth=linewidth, zorder=zorder)
             
-            # Add arrows to show initial to current position if moved
+            # Add enhanced arrows to show initial to current position if moved
             if is_done and hasattr(self, 'initial_object_locs') and type_o in self.initial_object_locs:
                 init_loc = self.initial_object_locs[type_o]
                 if init_loc != loc:  # Only draw arrow if position changed
                     dx = loc[0] - init_loc[0]
                     dy = loc[1] - init_loc[1]
+                    
+                    # First draw a wider "shadow" arrow for better visibility
                     ax.arrow(init_loc[0], init_loc[1], dx*0.9, dy*0.9, 
-                            head_width=0.2, head_length=0.3, fc=color, ec='black',
-                            alpha=0.4, zorder=5, length_includes_head=True)
+                            head_width=0.25, head_length=0.35, 
+                            fc='white', ec='#666666',
+                            alpha=0.5, zorder=4, length_includes_head=True,
+                            width=0.08)
+                    
+                    # Then draw the main colored arrow
+                    ax.arrow(init_loc[0], init_loc[1], dx*0.9, dy*0.9, 
+                            head_width=0.2, head_length=0.3, 
+                            fc=color, ec='#333333',
+                            alpha=0.7, zorder=5, length_includes_head=True,
+                            width=0.05)
+                    
+                    # Add a "moved from" small marker
+                    ax.scatter(init_loc[0], init_loc[1], color=color, s=80, alpha=0.3,
+                             edgecolor='#666666', linewidth=1, zorder=3, marker='o')
             
             # Get object properties for visualization
             color_name = COLORS_IDX.get(type_o[0], 'unknown')
             object_name = OBJECTS_IDX.get(type_o[2], 'unknown')
             material_name = MATERIALS_IDX.get(type_o[1], 'unknown')
             
-            # Add label with object info
-            object_label = f"{color_name} {object_name}"
-            plt.text(loc[0], loc[1]+0.4, object_label, 
-                    ha='center', fontsize=9, 
-                    bbox=dict(facecolor='white', alpha=0.7, boxstyle='round,pad=0.2'))
+            # Add enhanced label with object info and material
+            object_label = f"{color_name.capitalize()} {object_name}"
+            details_label = f"{material_name}" if material_name != 'unknown' else ""
             
-            # Try loading specific images with different fallback options
+            # Position main label above the object
+            plt.text(loc[0], loc[1]+0.5, object_label, 
+                    ha='center', va='center', fontsize=10, fontweight='bold',
+                    bbox=dict(facecolor='white', alpha=0.8, boxstyle='round,pad=0.3',
+                             edgecolor='#666666', linewidth=0.5))
+                             
+            # Position material info below the object if available
+            if details_label:
+                plt.text(loc[0], loc[1]-0.5, details_label, 
+                        ha='center', va='center', fontsize=8, color='#444444',
+                        bbox=dict(facecolor='white', alpha=0.7, boxstyle='round,pad=0.2',
+                                 edgecolor='#aaaaaa', linewidth=0.5))
+            
+            # Try loading specific images with enhanced presentation
             try:
-                # First attempt - specific color+object combination
-                specific_path = f'data/objects/{color_name}{object_name}.jpeg'
+                # Use _holding suffix for done objects if available
+                holding_suffix = "_holding" if is_done else ""
+                
+                # First attempt - specific color+object combination with holding status
+                specific_path = f'data/objects/{color_name}{object_name}{holding_suffix}.jpeg'
+                alt_path = f'data/objects/{color_name}{object_name}.jpeg'
+                
+                # Choose appropriate image with zoom level based on object state
+                zoom_level = 0.030 if is_done else 0.025  # Slightly larger for placed objects
                 
                 if os.path.exists(os.path.join(os.path.dirname(os.path.dirname(__file__)), specific_path)):
-                    ab = AnnotationBbox(getImage(specific_path), (loc[0], loc[1]), frameon=False)
+                    # Use state-specific image if available
+                    ab = AnnotationBbox(getImage(specific_path, zoom=zoom_level), 
+                                       (loc[0], loc[1]), frameon=False)
                     ax.add_artist(ab)
-                # Second attempt - standard object images
+                elif os.path.exists(os.path.join(os.path.dirname(os.path.dirname(__file__)), alt_path)):
+                    # Use regular image if holding-specific not available
+                    ab = AnnotationBbox(getImage(alt_path, zoom=zoom_level), 
+                                       (loc[0], loc[1]), frameon=False)
+                    ax.add_artist(ab)
+                # Standard object images with improved colors
                 elif type_o[:3] == (1, 1, 1):  # Red cup
-                    ab = AnnotationBbox(getImage('data/objects/redcup.jpeg'), (loc[0], loc[1]), frameon=False)
+                    img_path = 'data/objects/redcup_holding.jpeg' if is_done else 'data/objects/redcup.jpeg'
+                    ab = AnnotationBbox(getImage(img_path, zoom=zoom_level), 
+                                       (loc[0], loc[1]), frameon=False)
                     ax.add_artist(ab)
                 elif type_o[:3] == (2, 1, 1):  # Yellow cup
-                    ab = AnnotationBbox(getImage('data/objects/yellowcup.jpeg'), (loc[0], loc[1]), frameon=False)
+                    img_path = 'data/objects/yellowcup_holding.jpeg' if is_done else 'data/objects/yellowcup.jpeg'
+                    ab = AnnotationBbox(getImage(img_path, zoom=zoom_level), 
+                                       (loc[0], loc[1]), frameon=False)
                     ax.add_artist(ab)
                 else:
-                    # Create a fallback colored shape based on object properties
-                    img = np.ones((100, 100, 4))
+                    # Create a high-quality fallback shape based on object properties
+                    img = np.ones((200, 200, 4))  # Higher resolution for better quality
                     
-                    # Set color based on object color
+                    # Use research-quality colors that match the color scheme
                     if type_o[0] == 1:  # Red
-                        img[:,:,0] = 0.9  # R
-                        img[:,:,1] = 0.2  # G
-                        img[:,:,2] = 0.2  # B
+                        rgb = np.array([0.85, 0.1, 0.1])  # Vibrant red
                     elif type_o[0] == 2:  # Yellow
-                        img[:,:,0] = 0.9  # R
-                        img[:,:,1] = 0.9  # G
-                        img[:,:,2] = 0.2  # B
+                        rgb = np.array([0.95, 0.75, 0.1])  # Vibrant yellow
                     elif type_o[0] == 3:  # Purple
-                        img[:,:,0] = 0.6  # R
-                        img[:,:,1] = 0.2  # G
-                        img[:,:,2] = 0.8  # B
+                        rgb = np.array([0.6, 0.2, 0.65])  # Rich purple
+                    else:
+                        rgb = np.array([0.5, 0.5, 0.5])  # Default gray
+                        
+                    img[:,:,0:3] = rgb
+                    
+                    # Add a gradient effect for a more polished look
+                    y, x = np.ogrid[:200, :200]
+                    center = (100, 100)
+                    dist = np.sqrt((x - center[0])**2 + (y - center[1])**2)
+                    # Make center brighter for 3D effect
+                    for i in range(3):
+                        img[:,:,i] = np.minimum(1.0, img[:,:,i] + (50 - dist) * 0.01 * (1 if i==0 else 0.7))
             except Exception as e:
                 print(f"Error rendering image for {color_name} {object_name}: {e}")
-                # Create simple colored circle as emergency fallback
-                img = np.ones((100, 100, 4))
-                img[:,:,0:3] = np.array([0.5, 0.5, 0.5])  # Gray color
+                # Create enhanced fallback with gradient
+                img = np.ones((200, 200, 4))
                 
-                # Set shape based on object type
-                if type_o[2] == 1:  # Cup - use circle
-                    radius = 40
-                    center = (50, 50)
-                    y, x = np.ogrid[:100, :100]
+                # Use a neutral gray with color hint
+                if type_o[0] == 1:  # Red hint
+                    base_color = np.array([0.65, 0.6, 0.6])
+                elif type_o[0] == 2:  # Yellow hint
+                    base_color = np.array([0.65, 0.65, 0.6])  
+                elif type_o[0] == 3:  # Purple hint
+                    base_color = np.array([0.6, 0.6, 0.65])
+                else:
+                    base_color = np.array([0.6, 0.6, 0.6])
+                    
+                img[:,:,0:3] = base_color
+                
+                # Create professional shapes with higher quality rendering
+                if type_o[2] == 1:  # Cup - use rounded shape with shadow
+                    # Main circle
+                    radius = 80
+                    center = (100, 100)
+                    y, x = np.ogrid[:200, :200]
+                    
+                    # Create base shape
                     mask = (x - center[0])**2 + (y - center[1])**2 > radius**2
-                    img[mask] = [1, 1, 1, 0]  # Transparent outside circle
-                elif type_o[2] == 2:  # Bowl - use ellipse
-                    radius_x, radius_y = 45, 30
-                    center = (50, 50)
-                    y, x = np.ogrid[:100, :100]
+                    img[mask] = [0, 0, 0, 0]  # Transparent outside circle
+                    
+                    # Add subtle shadow for 3D effect
+                    shadow_shift = 5
+                    shadow_mask = ((x - (center[0] + shadow_shift))**2 + 
+                                  (y - (center[1] + shadow_shift))**2 > radius**2) & ~mask
+                    img[shadow_mask] = [0.2, 0.2, 0.2, 0.2]  # Semi-transparent shadow
+                    
+                    # Add highlight for glossy effect
+                    highlight_x, highlight_y = 70, 70
+                    highlight_radius = 25
+                    highlight_mask = ((x - highlight_x)**2 + (y - highlight_y)**2 < highlight_radius**2) & ~mask
+                    img[highlight_mask] = np.minimum(1.0, img[highlight_mask] + [0.3, 0.3, 0.3, 0])
+                    
+                elif type_o[2] == 2:  # Bowl - use oval shape with shadow
+                    # Main ellipse
+                    radius_x, radius_y = 90, 60
+                    center = (100, 100)
+                    y, x = np.ogrid[:200, :200]
+                    
+                    # Create base shape with more complex equation for better oval
                     mask = (x - center[0])**2 / radius_x**2 + (y - center[1])**2 / radius_y**2 > 1
-                    img[mask] = [1, 1, 1, 0]  # Transparent outside ellipse
+                    img[mask] = [0, 0, 0, 0]  # Transparent outside ellipse
+                    
+                    # Add 3D shadow effect
+                    shadow_shift_x, shadow_shift_y = 5, 8
+                    shadow_mask = ((x - (center[0] + shadow_shift_x))**2 / radius_x**2 + 
+                                  (y - (center[1] + shadow_shift_y))**2 / radius_y**2 > 1) & ~mask
+                    img[shadow_mask] = [0.2, 0.2, 0.2, 0.2]  # Semi-transparent shadow
+                    
+                    # Add highlight for glossy effect
+                    highlight_x, highlight_y = 70, 80
+                    highlight_radius_x, highlight_radius_y = 20, 15
+                    highlight_mask = ((x - highlight_x)**2 / highlight_radius_x**2 + 
+                                     (y - highlight_y)**2 / highlight_radius_y**2 < 1) & ~mask
+                    img[highlight_mask] = np.minimum(1.0, img[highlight_mask] + [0.3, 0.3, 0.3, 0])
+                    
+                    # Add inner oval to suggest bowl depth
+                    inner_x, inner_y = 70, 50
+                    inner_mask = ((x - center[0])**2 / inner_x**2 + 
+                                 (y - center[1])**2 / inner_y**2 < 0.7) & ~mask
+                    img[inner_mask] = np.minimum(1.0, img[inner_mask] - [0.1, 0.1, 0.1, 0])
+                else:
+                    # Default shape with 3D effects for unknown objects
+                    radius = 80
+                    center = (100, 100)
+                    y, x = np.ogrid[:200, :200]
+                    mask = (x - center[0])**2 + (y - center[1])**2 > radius**2
+                    img[mask] = [0, 0, 0, 0]
                 
-                ab = AnnotationBbox(OffsetImage(img, zoom=0.025), (loc[0], loc[1]), frameon=False)
+                # Use appropriate zoom based on object state
+                zoom_level = 0.030 if is_done else 0.025
+                ab = AnnotationBbox(OffsetImage(img, zoom=zoom_level), (loc[0], loc[1]), frameon=False)
                 ax.add_artist(ab)
-                
-                # Add text label for object
-                plt.text(loc[0], loc[1]-0.5, f"{color_name} {object_name}", 
-                        ha='center', va='top', fontsize=8, 
-                        bbox=dict(facecolor='white', alpha=0.6, boxstyle='round,pad=0.2'))
 
-        # Set axis limits and ticks
-        plt.xlim(self.x_min - 0.5, self.x_max - 0.5)
-        plt.ylim(self.y_min - 0.5, self.y_max - 0.5)
-        plt.xticks(range(self.x_min, self.x_max))
-        plt.yticks(range(self.y_min, self.y_max))
+        # Set axis limits and ticks with enhanced styling
+        plt.xlim(self.x_min - 0.7, self.x_max + 0.2)
+        plt.ylim(self.y_min - 0.7, self.y_max + 0.2)
         
-        # Add legend for object types
+        # Set professional-looking ticks with clearer grid
+        plt.xticks(range(self.x_min, self.x_max+1))
+        plt.yticks(range(self.y_min, self.y_max+1))
+        
+        # Add axis labels with research paper quality
+        plt.xlabel('X Position', fontsize=14, labelpad=10, fontweight='bold', color='#333333')
+        plt.ylabel('Y Position', fontsize=14, labelpad=10, fontweight='bold', color='#333333')
+        
+        # Create comprehensive legend for object types with color indicators
         legend_elements = []
-        for obj_type in set([o[2] for o in self.object_type_tuple]):
-            obj_name = OBJECTS_IDX[obj_type]
+        
+        # Add object types to legend
+        for obj_type in sorted(set([o[2] for o in self.object_type_tuple])):
+            obj_name = OBJECTS_IDX[obj_type].capitalize()
             legend_elements.append(plt.Line2D([0], [0], marker='o', color='w', 
-                                             markerfacecolor='gray', markersize=8, label=f"{obj_name}"))
+                                            markerfacecolor='#333333', markersize=10, 
+                                            label=f"{obj_name}"))
         
-        # Add a legend for quadrants
-        plt.legend(handles=legend_elements, loc='upper right', title="Object Types")
+        # Add color types to legend
+        for color_idx in sorted(set([o[0] for o in self.object_type_tuple])):
+            color_name = COLORS_IDX.get(color_idx, 'unknown').capitalize()
+            marker_color = '#e41a1c' if color_idx == 1 else '#ff7f00' if color_idx == 2 else '#984ea3'
+            legend_elements.append(plt.Line2D([0], [0], marker='s', color='w', 
+                                            markerfacecolor=marker_color, markersize=10, 
+                                            label=f"{color_name}"))
         
-        # Create the rollouts directory if it doesn't exist
+        # Add status indicators to legend
+        legend_elements.append(plt.Line2D([0], [0], marker='o', color='w', markeredgecolor='#000000',
+                                         markerfacecolor='w', markeredgewidth=2.5, markersize=10,
+                                         label="Placed Object"))
+        legend_elements.append(plt.Line2D([0], [0], marker='o', color='w', markeredgecolor='#444444',
+                                         markerfacecolor='w', markeredgewidth=1.5, markersize=10, alpha=0.8,
+                                         label="Not Placed"))
+                                         
+        # Add quadrant names to legend
+        for i, (color, name) in enumerate(zip(quad_colors, quad_labels)):
+            legend_elements.append(plt.Rectangle((0,0), 1, 1, facecolor=color, alpha=0.3,
+                                               edgecolor='#666666', linewidth=0.8, label=name))
+        
+        # Position legend in a more suitable location with better styling
+        legend = plt.legend(handles=legend_elements, loc='lower left', 
+                           title="Environment Elements", title_fontsize=12,
+                           bbox_to_anchor=(0.02, -0.02), ncol=2, fontsize=9,
+                           framealpha=0.9, fancybox=True, shadow=True)
+        legend.get_frame().set_edgecolor('#666666')
+                           
+        # Add timestamp and version info for research reproducibility
+        timestamp_str = time.strftime("%Y-%m-%d %H:%M:%S")
+        plt.figtext(0.98, 0.02, f"Generated: {timestamp_str}", fontsize=8, 
+                   ha='right', va='bottom', alpha=0.7)
+        
+        # Create directories for saving images
+        # Create both rollouts and beliefs directories
         rollout_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "rollouts")
         os.makedirs(rollout_dir, exist_ok=True)
+        
+        beliefs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "beliefs")
+        os.makedirs(beliefs_dir, exist_ok=True)
         
         # Add a unique identifier based on process ID and time to prevent overwriting
         unique_id = os.getpid() % 1000  # Use process ID for uniqueness
         timestamp = int(time.time() % 10000)  # Current time in seconds (shortened)
         
-        # Save figure with absolute path and unique identifier
+        # Save figure with absolute path and unique identifier with higher DPI for publication quality
         save_path = os.path.join(rollout_dir, f"state_{unique_id}_{timestamp}_{timestep}.png")
-        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+        plt.savefig(save_path, dpi=300, bbox_inches='tight', facecolor='white')
         print(f"Saved state image to: {save_path}")
 
+        plt.tight_layout()
         plt.show()
         plt.close()
 
