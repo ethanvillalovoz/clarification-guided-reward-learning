@@ -439,11 +439,11 @@ class Gridworld:
         - Q4: Positive X, Negative Y (bottom right)
         
         Special cases for axes:
-        - Origin (0,0): Considered Q2
-        - Positive X-axis: Q1
-        - Negative X-axis: Q2
-        - Positive Y-axis: Q2
-        - Negative Y-axis: Q3
+        - Origin (0,0): Considered Q1 (changed from Q2)
+        - Positive X-axis: Q1/Q4 depending on proximity
+        - Negative X-axis: Q2/Q3 depending on proximity
+        - Positive Y-axis: Q1/Q2 depending on proximity
+        - Negative Y-axis: Q3/Q4 depending on proximity
         
         Parameters:
         -----------
@@ -455,34 +455,40 @@ class Gridworld:
         list
             List of quadrant assignments for each object
         """
-        current_state = list(copy.deepcopy(input_state))
         quadrant_list = []
-
-        for i in range(0, len(current_state) - 1):
-            x, y = input_state[current_state[i]]['pos']
-            
-            # Determine quadrant based on coordinates
-            if x > 0:
-                if y > 0:
-                    quadrant_list.append(['Q1'])  # Q1: Positive X, Positive Y
-                elif y < 0:
-                    quadrant_list.append(['Q4'])  # Q4: Positive X, Negative Y
-                else:  # y == 0, on positive x-axis
-                    quadrant_list.append(['Q1'])
-            elif x < 0:
-                if y > 0:
-                    quadrant_list.append(['Q2'])  # Q2: Negative X, Positive Y
-                elif y < 0:
-                    quadrant_list.append(['Q3'])  # Q3: Negative X, Negative Y
-                else:  # y == 0, on negative x-axis
-                    quadrant_list.append(['Q2'])
-            else:  # x == 0, on y-axis
-                if y > 0:
-                    quadrant_list.append(['Q2'])  # On positive y-axis
-                elif y < 0:
-                    quadrant_list.append(['Q3'])  # On negative y-axis
-                else:  # Origin (0,0)
-                    quadrant_list.append(['Q2'])
+        
+        # Process all objects in the input state
+        for obj_key in input_state:
+            # Skip the 'exit' key which isn't an object
+            if obj_key == 'exit':
+                continue
+                
+            # Get object position
+            try:
+                x, y = input_state[obj_key]['pos']
+                
+                # Convert numpy values to regular Python types if needed
+                if hasattr(x, 'item'):
+                    x = x.item()
+                if hasattr(y, 'item'):
+                    y = y.item()
+                
+                # Determine quadrant based on coordinates with clearer boundaries
+                if x >= 0:  # Right half of the grid
+                    if y >= 0:
+                        quadrant_list.append(['Q1'])  # Q1: Positive X, Positive Y (top right)
+                    else:
+                        quadrant_list.append(['Q4'])  # Q4: Positive X, Negative Y (bottom right)
+                else:  # Left half of the grid
+                    if y >= 0:
+                        quadrant_list.append(['Q2'])  # Q2: Negative X, Positive Y (top left)
+                    else:
+                        quadrant_list.append(['Q3'])  # Q3: Negative X, Negative Y (bottom left)
+                        
+            except (KeyError, TypeError) as e:
+                # Handle case where object doesn't have position information
+                print(f"Warning: Could not determine quadrant for {obj_key}: {e}")
+                quadrant_list.append(['Q1'])  # Default to Q1 as fallback
 
         return quadrant_list
 
@@ -507,17 +513,29 @@ class Gridworld:
         # Base case: preferences contains reward values for quadrants
         if isinstance(preferences, dict) and quadrants in preferences:
             return preferences[quadrants]
-        # Handle 'other' category
-        elif 'other' in preferences:
-            return preferences['other'][quadrants]
-        # Recursive case: navigate deeper in preference tree
-        elif isinstance(preferences, dict):
+            
+        # Handle case where preferences is a dict but doesn't contain the quadrant or other attributes
+        if isinstance(preferences, dict):
+            # Handle 'other' category if it exists
+            if 'other' in preferences:
+                try:
+                    if isinstance(preferences['other'], dict) and quadrants in preferences['other']:
+                        return preferences['other'][quadrants]
+                    else:
+                        # Try recursively looking in 'other'
+                        return self.get_reward_value(preferences['other'], attributes, quadrants)
+                except (TypeError, KeyError):
+                    pass  # Continue to next approach if this fails
+                    
+            # Try to navigate deeper using the attributes
             for attr in attributes:
                 if attr in preferences:
-                    return self.get_reward_value(preferences[attr], attributes, quadrants)
+                    # Make a copy of attributes and remove the current one to avoid infinite loops
+                    remaining_attrs = [a for a in attributes if a != attr]
+                    return self.get_reward_value(preferences[attr], remaining_attrs, quadrants)
         
         # No preference found, return default value
-        print(f"Warning: No preference found for attributes {attributes} in quadrant {quadrants}")
+        # print(f"Warning: No preference found for attributes {attributes} in quadrant {quadrants}")
         return 0  # Default reward value
 
     def lookup_quadrant_reward(self, input_state):
@@ -578,11 +596,49 @@ class Gridworld:
         current_state = copy.deepcopy(input_state)
         step_reward = 0
         
-        # Define valid locations in each quadrant - restricted to stay within visible grid area
-        locs_in_q1 = [(x, y) for x in range(1, self.x_max) for y in range(1, self.y_max)]
-        locs_in_q2 = [(x, y) for x in range(self.x_min, 0) for y in range(1, self.y_max)]
-        locs_in_q3 = [(x, y) for x in range(self.x_min, 0) for y in range(self.y_min, 0)]
-        locs_in_q4 = [(x, y) for x in range(1, self.x_max) for y in range(self.y_min, 0)]
+        # Define valid locations in each quadrant - restricted to stay well within visible grid area
+        # Add safety margins to prevent objects from being placed at the edges
+        safety_margin = 1
+        
+        # Define central positions for each quadrant for consistent placement
+        # Define positions with small offsets based on object type to prevent overlap
+        q1_central_yellow = (2, 2)      # Yellow cup in Q1
+        q1_central_red = (1.5, 2)       # Red cup in Q1
+        q1_central_purple = (2, 1.5)    # Purple bowl in Q1
+        
+        q2_central_yellow = (-2, 2)     # Yellow cup in Q2
+        q2_central_red = (-1.5, 2)      # Red cup in Q2
+        q2_central_purple = (-2, 1.5)   # Purple bowl in Q2
+        
+        q3_central_yellow = (-2, -2)    # Yellow cup in Q3
+        q3_central_red = (-1.5, -2)     # Red cup in Q3
+        q3_central_purple = (-2, -1.5)  # Purple bowl in Q3
+        
+        q4_central_yellow = (2, -2)     # Yellow cup in Q4
+        q4_central_red = (1.5, -2)      # Red cup in Q4
+        q4_central_purple = (2, -1.5)   # Purple bowl in Q4
+        
+        # Default central positions for any object
+        q1_central = (2, 2)    # Positive x, positive y
+        q2_central = (-2, 2)   # Negative x, positive y
+        q3_central = (-2, -2)  # Negative x, negative y
+        q4_central = (2, -2)   # Positive x, negative y
+        
+        # Define valid locations for each quadrant
+        locs_in_q1 = [(x, y) for x in range(1, self.x_max - safety_margin) 
+                            for y in range(1, self.y_max - safety_margin)]
+        locs_in_q2 = [(x, y) for x in range(self.x_min + safety_margin, 0) 
+                            for y in range(1, self.y_max - safety_margin)]
+        locs_in_q3 = [(x, y) for x in range(self.x_min + safety_margin, 0) 
+                            for y in range(self.y_min + safety_margin, 0)]
+        locs_in_q4 = [(x, y) for x in range(1, self.x_max - safety_margin) 
+                            for y in range(self.y_min + safety_margin, 0)]
+                            
+        # Ensure each quadrant has at least some valid locations
+        if not locs_in_q1: locs_in_q1 = [q1_central]
+        if not locs_in_q2: locs_in_q2 = [q2_central]
+        if not locs_in_q3: locs_in_q3 = [q3_central]
+        if not locs_in_q4: locs_in_q4 = [q4_central]
 
         # Handle already exited state
         if current_state['exit']:
@@ -595,23 +651,64 @@ class Gridworld:
             return current_state, step_reward, True
 
         # Handle object movement action
-        obj_type, obj_action = action
-
-        if obj_action in self.skills:
-            valid, new_loc = self.is_valid_push(
-                current_state, action, locs_in_q1, locs_in_q2, locs_in_q3, locs_in_q4
-            )
+        if isinstance(action, tuple) and len(action) >= 2:
+            obj_type, obj_action = action
+            new_loc = None
             
-            if not valid:
+            # Directly set position based on quadrant and object type to avoid overlap
+            if obj_action == 'Q1':
+                if obj_type[:3] == (2, 1, 1):  # Yellow cup
+                    new_loc = q1_central_yellow
+                elif obj_type[:3] == (1, 1, 1):  # Red cup
+                    new_loc = q1_central_red
+                elif obj_type[:3] == (3, 1, 2):  # Purple bowl
+                    new_loc = q1_central_purple
+                else:
+                    new_loc = q1_central
+            elif obj_action == 'Q2':
+                if obj_type[:3] == (2, 1, 1):  # Yellow cup
+                    new_loc = q2_central_yellow
+                elif obj_type[:3] == (1, 1, 1):  # Red cup
+                    new_loc = q2_central_red
+                elif obj_type[:3] == (3, 1, 2):  # Purple bowl
+                    new_loc = q2_central_purple
+                else:
+                    new_loc = q2_central
+            elif obj_action == 'Q3':
+                if obj_type[:3] == (2, 1, 1):  # Yellow cup
+                    new_loc = q3_central_yellow
+                elif obj_type[:3] == (1, 1, 1):  # Red cup
+                    new_loc = q3_central_red
+                elif obj_type[:3] == (3, 1, 2):  # Purple bowl
+                    new_loc = q3_central_purple
+                else:
+                    new_loc = q3_central
+            elif obj_action == 'Q4':
+                if obj_type[:3] == (2, 1, 1):  # Yellow cup
+                    new_loc = q4_central_yellow
+                elif obj_type[:3] == (1, 1, 1):  # Red cup
+                    new_loc = q4_central_red
+                elif obj_type[:3] == (3, 1, 2):  # Purple bowl
+                    new_loc = q4_central_purple
+                else:
+                    new_loc = q4_central
+            else:
+                # Invalid quadrant action
                 return current_state, step_cost, False
-
-        # Update object position
-        action_type_moved = action[0]
-        current_state[action_type_moved]['pos'] = new_loc
-        current_state[obj_type]['done'] = True
-
-        step_reward = step_cost
-        done = self.is_done_given_state(current_state)
+                
+            # Update object position
+            if obj_type in current_state:
+                current_state[obj_type]['pos'] = new_loc
+                current_state[obj_type]['done'] = True
+                
+                # Store initial position if not already tracked
+                if not hasattr(self, 'initial_object_locs'):
+                    self.initial_object_locs = {}
+                if obj_type not in self.initial_object_locs:
+                    self.initial_object_locs[obj_type] = input_state[obj_type]['pos']
+                
+                step_reward = step_cost
+                done = self.is_done_given_state(current_state)
 
         return current_state, step_reward, done
 
@@ -817,6 +914,8 @@ class Gridworld:
         timestep : int
             Current timestep
         """
+        import os
+        import time
         from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
         def getImage(path, zoom=0.025):
@@ -833,7 +932,7 @@ class Gridworld:
                 return OffsetImage(fallback, zoom=zoom)
 
         # Create figure
-        plt.figure(figsize=(8, 8))
+        plt.figure(figsize=(10, 10))
         ax = plt.gca()
         
         # Add background grid lines
@@ -859,6 +958,23 @@ class Gridworld:
             ax.set_title(f"State at Time {timestep}: FINAL STATE", fontsize=14)
         else:
             ax.set_title(f"State at Time {timestep}", fontsize=14)
+            
+        # Add a status display of each object's state in the corner
+        status_text = []
+        for idx, obj in enumerate(self.object_type_tuple):
+            color_name = COLORS_IDX.get(obj[0], 'unknown')
+            object_name = OBJECTS_IDX.get(obj[2], 'unknown')
+            is_done = current_state[obj]['done']
+            current_pos = current_state[obj]['pos']
+            
+            status = "✓" if is_done else "◯"
+            status_text.append(f"{status} {color_name} {object_name}: {current_pos}")
+            
+        # Create text box with object status
+        status_box = '\n'.join(status_text)
+        props = dict(boxstyle='round', facecolor='wheat', alpha=0.4)
+        ax.text(0.02, 0.98, status_box, transform=ax.transAxes, fontsize=10,
+                verticalalignment='top', bbox=props)
 
         # Get color mappings for objects
         type_to_color = {}
@@ -872,25 +988,49 @@ class Gridworld:
         for type_o in self.object_type_tuple:
             loc = plot_init_state[type_o]['pos']
             color = type_to_color[type_o]
+            is_done = plot_init_state[type_o]['done']
+            
+            # Highlight active vs. inactive objects
+            edgecolor = 'red' if is_done else 'black'
+            linewidth = 2 if is_done else 1
+            alpha = 1.0 if is_done else 0.7
+            size = 220 if is_done else 200
             
             # Create scatter point for object location
-            ax.scatter(loc[0], loc[1], color=color, s=200, alpha=0.7, edgecolor='black', zorder=10)
+            ax.scatter(loc[0], loc[1], color=color, s=size, alpha=alpha, 
+                      edgecolor=edgecolor, linewidth=linewidth, zorder=10)
+            
+            # Add arrows to show initial to current position if moved
+            if is_done and hasattr(self, 'initial_object_locs') and type_o in self.initial_object_locs:
+                init_loc = self.initial_object_locs[type_o]
+                if init_loc != loc:  # Only draw arrow if position changed
+                    dx = loc[0] - init_loc[0]
+                    dy = loc[1] - init_loc[1]
+                    ax.arrow(init_loc[0], init_loc[1], dx*0.9, dy*0.9, 
+                            head_width=0.2, head_length=0.3, fc=color, ec='black',
+                            alpha=0.4, zorder=5, length_includes_head=True)
             
             # Get object properties for visualization
             color_name = COLORS_IDX.get(type_o[0], 'unknown')
             object_name = OBJECTS_IDX.get(type_o[2], 'unknown')
             material_name = MATERIALS_IDX.get(type_o[1], 'unknown')
             
-            # Try to load specific image for this object
-            image_path = f'data/objects/{color_name}{object_name}.jpeg'
+            # Add label with object info
+            object_label = f"{color_name} {object_name}"
+            plt.text(loc[0], loc[1]+0.4, object_label, 
+                    ha='center', fontsize=9, 
+                    bbox=dict(facecolor='white', alpha=0.7, boxstyle='round,pad=0.2'))
             
-            # Check if image exists
-            if os.path.exists(os.path.join(os.path.dirname(os.path.dirname(__file__)), image_path)):
-                ab = AnnotationBbox(getImage(image_path), (loc[0], loc[1]), frameon=False)
-                ax.add_artist(ab)
-            else:
-                # Fall back to generic images
-                if type_o[:3] == (1, 1, 1):  # Red cup
+            # Try loading specific images with different fallback options
+            try:
+                # First attempt - specific color+object combination
+                specific_path = f'data/objects/{color_name}{object_name}.jpeg'
+                
+                if os.path.exists(os.path.join(os.path.dirname(os.path.dirname(__file__)), specific_path)):
+                    ab = AnnotationBbox(getImage(specific_path), (loc[0], loc[1]), frameon=False)
+                    ax.add_artist(ab)
+                # Second attempt - standard object images
+                elif type_o[:3] == (1, 1, 1):  # Red cup
                     ab = AnnotationBbox(getImage('data/objects/redcup.jpeg'), (loc[0], loc[1]), frameon=False)
                     ax.add_artist(ab)
                 elif type_o[:3] == (2, 1, 1):  # Yellow cup
@@ -913,28 +1053,33 @@ class Gridworld:
                         img[:,:,0] = 0.6  # R
                         img[:,:,1] = 0.2  # G
                         img[:,:,2] = 0.8  # B
-                    
-                    # Set shape based on object type
-                    if type_o[2] == 1:  # Cup - use circle
-                        radius = 40
-                        center = (50, 50)
-                        y, x = np.ogrid[:100, :100]
-                        mask = (x - center[0])**2 + (y - center[1])**2 > radius**2
-                        img[mask] = [1, 1, 1, 0]  # Transparent outside circle
-                    elif type_o[2] == 2:  # Bowl - use ellipse
-                        radius_x, radius_y = 45, 30
-                        center = (50, 50)
-                        y, x = np.ogrid[:100, :100]
-                        mask = (x - center[0])**2 / radius_x**2 + (y - center[1])**2 / radius_y**2 > 1
-                        img[mask] = [1, 1, 1, 0]  # Transparent outside ellipse
-                    
-                    ab = AnnotationBbox(OffsetImage(img, zoom=0.025), (loc[0], loc[1]), frameon=False)
-                    ax.add_artist(ab)
-                    
-                    # Add text label for object
-                    plt.text(loc[0], loc[1]-0.5, f"{color_name} {object_name}", 
-                            ha='center', va='top', fontsize=8, 
-                            bbox=dict(facecolor='white', alpha=0.6, boxstyle='round,pad=0.2'))
+            except Exception as e:
+                print(f"Error rendering image for {color_name} {object_name}: {e}")
+                # Create simple colored circle as emergency fallback
+                img = np.ones((100, 100, 4))
+                img[:,:,0:3] = np.array([0.5, 0.5, 0.5])  # Gray color
+                
+                # Set shape based on object type
+                if type_o[2] == 1:  # Cup - use circle
+                    radius = 40
+                    center = (50, 50)
+                    y, x = np.ogrid[:100, :100]
+                    mask = (x - center[0])**2 + (y - center[1])**2 > radius**2
+                    img[mask] = [1, 1, 1, 0]  # Transparent outside circle
+                elif type_o[2] == 2:  # Bowl - use ellipse
+                    radius_x, radius_y = 45, 30
+                    center = (50, 50)
+                    y, x = np.ogrid[:100, :100]
+                    mask = (x - center[0])**2 / radius_x**2 + (y - center[1])**2 / radius_y**2 > 1
+                    img[mask] = [1, 1, 1, 0]  # Transparent outside ellipse
+                
+                ab = AnnotationBbox(OffsetImage(img, zoom=0.025), (loc[0], loc[1]), frameon=False)
+                ax.add_artist(ab)
+                
+                # Add text label for object
+                plt.text(loc[0], loc[1]-0.5, f"{color_name} {object_name}", 
+                        ha='center', va='top', fontsize=8, 
+                        bbox=dict(facecolor='white', alpha=0.6, boxstyle='round,pad=0.2'))
 
         # Set axis limits and ticks
         plt.xlim(self.x_min - 0.5, self.x_max - 0.5)
@@ -956,8 +1101,12 @@ class Gridworld:
         rollout_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "rollouts")
         os.makedirs(rollout_dir, exist_ok=True)
         
-        # Save figure with absolute path
-        save_path = os.path.join(rollout_dir, f"state_{timestep}.png")
+        # Add a unique identifier based on process ID and time to prevent overwriting
+        unique_id = os.getpid() % 1000  # Use process ID for uniqueness
+        timestamp = int(time.time() % 10000)  # Current time in seconds (shortened)
+        
+        # Save figure with absolute path and unique identifier
+        save_path = os.path.join(rollout_dir, f"state_{unique_id}_{timestamp}_{timestep}.png")
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
         print(f"Saved state image to: {save_path}")
 

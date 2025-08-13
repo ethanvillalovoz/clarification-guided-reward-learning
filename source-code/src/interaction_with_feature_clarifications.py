@@ -61,27 +61,155 @@ def get_weighted_robot_action(state, timestep, robot_beliefs, hypothesis_reward_
     tree_idx = np.random.choice(np.arange(len(robot_beliefs)), p=robot_beliefs)
     print("tree index:", tree_idx)
     tree = hypothesis_reward_space[tree_idx]
+    print(f"Using preference model: {tree_idx}")
     
+    # Create a fresh policy using the current state
     tree_policy = Gridworld(tree, object_type_tuple)
+    tree_policy.current_state = copy.deepcopy(state)
+    
+    # Compute optimal policy
     optimal_rew, game_results, sum_feature_vector = tree_policy.compute_optimal_performance()
     
-    # Get the next action from game_results based on the timestep
-    if timestep + 1 < len(game_results):
-        next_state = game_results[timestep + 1][0]
-        action = game_results[timestep + 1][1]  # This should be the action
+    # Create a list of tuples in the correct order based on object_type_tuple
+    ordered_object_tuples = []
+    for obj in object_type_tuple:
+        obj_tuple = (
+            COLORS[obj['color']],
+            MATERIALS[obj['material']],
+            OBJECTS[obj['object_type']],
+            obj['object_label']
+        )
+        ordered_object_tuples.append(obj_tuple)
+    
+    if timestep >= len(ordered_object_tuples):
+        print("All objects have been processed")
+        return EXIT, state
+        
+    # Get the current object to move based on timestep
+    current_object = ordered_object_tuples[timestep]
+    print(f"Current object to move (timestep {timestep}): {current_object}")
+    
+    # Get the next action from game_results
+    if len(game_results) > 0:
+        # Extract the action from game results
+        next_state = game_results[0][0]  # First step's resulting state
+        action = game_results[0][1]      # First step's action
+        
         print("robot given state", state)
+        
+        # Get the object type, color, and material details
+        color_idx, material_idx, object_idx, object_label = current_object
+        object_type = OBJECTS_IDX[object_idx]
+        color = COLORS_IDX[color_idx]
+        material = MATERIALS_IDX[material_idx]
+        
+        print(f"Robot moving: {color} {material} {object_type}")
+        
+        # Get best quadrant from the selected tree's preferences
+        best_quadrant = 'Q1'  # Default
+        best_reward = float('-inf')
+        
+        # Navigate the preference tree to find the best quadrant
+        try:
+            if object_type in tree['pref_values']:
+                if color in tree['pref_values'][object_type]:
+                    # Case: tree has object_type -> color -> quadrants
+                    for q in ['Q1', 'Q2', 'Q3', 'Q4']:
+                        if tree['pref_values'][object_type][color][q] > best_reward:
+                            best_reward = tree['pref_values'][object_type][color][q]
+                            best_quadrant = q
+                elif material in tree['pref_values'][object_type]:
+                    # Case: tree has object_type -> material -> quadrants
+                    for q in ['Q1', 'Q2', 'Q3', 'Q4']:
+                        if tree['pref_values'][object_type][material][q] > best_reward:
+                            best_reward = tree['pref_values'][object_type][material][q]
+                            best_quadrant = q
+            elif material in tree['pref_values']:
+                if color in tree['pref_values'][material]:
+                    # Case: tree has material -> color -> quadrants
+                    for q in ['Q1', 'Q2', 'Q3', 'Q4']:
+                        if tree['pref_values'][material][color][q] > best_reward:
+                            best_reward = tree['pref_values'][material][color][q]
+                            best_quadrant = q
+        except (KeyError, TypeError):
+            # If there's any error navigating the tree, use default
+            print(f"Could not find exact preference for {color} {material} {object_type}, using default")
+        
+        action_quadrant = best_quadrant
+        print(f"Robot chose {action_quadrant} based on preferences")
+        
+        # Create the action tuple
+        action = (current_object, action_quadrant)
+        
+        # Handle other cases
+        if isinstance(action, tuple) and len(action) == 2:
+            _, action_quadrant = action
+        
         print("robot action", action)
         print("robot next", next_state)
         
-        if isinstance(action, tuple) and len(action) > 1:
-            action = action[1]  # Extract the actual action part
-        
-        print("action", action)
-        return action, next_state
+        # Create a new state with the action applied
+        action_obj, action_quadrant = None, None
+        if isinstance(action, tuple) and len(action) == 2:
+            action_obj, action_quadrant = action
+        else:
+            # Handle case where action is just a string (like EXIT)
+            return action, state
+            
+        # Apply the action to create a new state
+        actual_new_state = copy.deepcopy(state)
+        # Set the object as done to indicate it has been moved
+        if action_obj in actual_new_state:
+            # Use the object's index to generate a unique position within the quadrant
+            object_index = action_obj[3]  # Use object_label for positioning
+            
+            # Calculate position based on quadrant and object index
+            # Ensure positions are integers within the quadrant, not on axes
+            if action_quadrant == 'Q1':  # Positive x, positive y
+                if object_index == 1:  # First object (yellow cup)
+                    target_pos = (2, 3)
+                elif object_index == 2:  # Second object (red cup)
+                    target_pos = (3, 2)
+                elif object_index == 3:  # Third object (purple bowl)
+                    target_pos = (4, 4)
+                else:
+                    target_pos = (3, 3)
+            elif action_quadrant == 'Q2':  # Negative x, positive y
+                if object_index == 1:  # First object
+                    target_pos = (-2, 3)
+                elif object_index == 2:  # Second object
+                    target_pos = (-3, 2)
+                elif object_index == 3:  # Third object
+                    target_pos = (-4, 4)
+                else:
+                    target_pos = (-3, 3)
+            elif action_quadrant == 'Q3':  # Negative x, negative y
+                if object_index == 1:  # First object
+                    target_pos = (-2, -3)
+                elif object_index == 2:  # Second object
+                    target_pos = (-3, -2)
+                elif object_index == 3:  # Third object
+                    target_pos = (-4, -4)
+                else:
+                    target_pos = (-3, -3)
+            elif action_quadrant == 'Q4':  # Positive x, negative y
+                if object_index == 1:  # First object
+                    target_pos = (2, -3)
+                elif object_index == 2:  # Second object
+                    target_pos = (3, -2)
+                elif object_index == 3:  # Third object
+                    target_pos = (4, -4)
+                else:
+                    target_pos = (3, -3)
+                
+            actual_new_state[action_obj]['pos'] = target_pos
+            actual_new_state[action_obj]['done'] = True
+            
+        print("action", action_quadrant)
+        return action_quadrant, actual_new_state
     else:
-        # Handle case where timestep+1 is out of range
-        print("Timestep out of range in game_results")
-        # Return last state and EXIT action as fallback
+        # Handle case where no actions were found
+        print("No actions found in game_results")
         return EXIT, state
 # Get correction from human
 # def get_correction_from_human(new_state, timestep, robot_action, true_reward_tree, object_type_tuple):
@@ -115,31 +243,131 @@ def get_weighted_robot_action(state, timestep, robot_beliefs, hypothesis_reward_
 #     return action, corrected_state
 
 def get_correction_from_human(new_state, timestep, robot_action, true_reward_tree, object_type_tuple):
+    # Create a list of tuples in the correct order based on object_type_tuple
+    ordered_object_tuples = []
+    for obj in object_type_tuple:
+        obj_tuple = (
+            COLORS[obj['color']],
+            MATERIALS[obj['material']],
+            OBJECTS[obj['object_type']],
+            obj['object_label']
+        )
+        ordered_object_tuples.append(obj_tuple)
+    
+    if timestep >= len(ordered_object_tuples):
+        print("All objects have been processed by human")
+        return EXIT, new_state
+        
+    current_object = ordered_object_tuples[timestep]
+    print(f"Human correcting object (timestep {timestep}): {current_object}")
+    
+    # Create a fresh policy using the human's preferred tree
     tree_policy = Gridworld(true_reward_tree, object_type_tuple)
+    tree_policy.current_state = copy.deepcopy(new_state)
+    
+    # Compute optimal policy
     optimal_rew, game_results, sum_feature_vector = tree_policy.compute_optimal_performance()
     
-    # Get the next action from game_results based on the timestep
-    if timestep + 1 < len(game_results):
-        next_state = game_results[timestep + 1][0]
-        action = game_results[timestep + 1][1]  # This should be the action
-        print("new_state", new_state)
-        print("corrected action", action)
-        print("next_state", next_state)
+    # Get the object type, color, and material details
+    color_idx, material_idx, object_idx, object_label = current_object
+    object_type = OBJECTS_IDX[object_idx]
+    color = COLORS_IDX[color_idx]
+    material = MATERIALS_IDX[material_idx]
+    
+    print(f"Human correcting: {color} {material} {object_type}")
+    
+    # Get best quadrant from the human's true reward tree
+    best_quadrant = 'Q1'  # Default
+    best_reward = float('-inf')
+    
+    # Navigate the preference tree to find the best quadrant
+    try:
+        if object_type in true_reward_tree['pref_values']:
+            if color in true_reward_tree['pref_values'][object_type]:
+                # Case: tree has object_type -> color -> quadrants
+                for q in ['Q1', 'Q2', 'Q3', 'Q4']:
+                    if true_reward_tree['pref_values'][object_type][color][q] > best_reward:
+                        best_reward = true_reward_tree['pref_values'][object_type][color][q]
+                        best_quadrant = q
+            elif material in true_reward_tree['pref_values'][object_type]:
+                # Case: tree has object_type -> material -> quadrants
+                for q in ['Q1', 'Q2', 'Q3', 'Q4']:
+                    if true_reward_tree['pref_values'][object_type][material][q] > best_reward:
+                        best_reward = true_reward_tree['pref_values'][object_type][material][q]
+                        best_quadrant = q
+        elif material in true_reward_tree['pref_values']:
+            if color in true_reward_tree['pref_values'][material]:
+                # Case: tree has material -> color -> quadrants
+                for q in ['Q1', 'Q2', 'Q3', 'Q4']:
+                    if true_reward_tree['pref_values'][material][color][q] > best_reward:
+                        best_reward = true_reward_tree['pref_values'][material][color][q]
+                        best_quadrant = q
+    except (KeyError, TypeError):
+        # If there's any error navigating the tree, use default
+        print(f"Could not find exact preference for {color} {material} {object_type}, using default")
+    
+    action_quadrant = best_quadrant
+    print(f"Human chose {action_quadrant} based on true preferences")
+    
+    print("new_state", new_state)
+    print("corrected action", (current_object, action_quadrant))
+    
+    # Apply the correction to create a new state
+    actual_corrected_state = copy.deepcopy(new_state)
+    
+    # Use the object's index to generate a unique position within the quadrant
+    object_index = current_object[3]  # Use object_label for positioning
+    
+    # Calculate position based on quadrant and object index
+    # Ensure positions are integers within the quadrant, not on axes
+    if action_quadrant == 'Q1':  # Positive x, positive y
+        if object_index == 1:  # First object (yellow cup)
+            target_pos = (2, 3)
+        elif object_index == 2:  # Second object (red cup)
+            target_pos = (3, 2) 
+        elif object_index == 3:  # Third object (purple bowl)
+            target_pos = (4, 4)
+        else:
+            target_pos = (3, 3)
+    elif action_quadrant == 'Q2':  # Negative x, positive y
+        if object_index == 1:  # First object
+            target_pos = (-2, 3)
+        elif object_index == 2:  # Second object
+            target_pos = (-3, 2)
+        elif object_index == 3:  # Third object
+            target_pos = (-4, 4)
+        else:
+            target_pos = (-3, 3)
+    elif action_quadrant == 'Q3':  # Negative x, negative y
+        if object_index == 1:  # First object
+            target_pos = (-2, -3)
+        elif object_index == 2:  # Second object
+            target_pos = (-3, -2)
+        elif object_index == 3:  # Third object
+            target_pos = (-4, -4)
+        else:
+            target_pos = (-3, -3)
+    elif action_quadrant == 'Q4':  # Positive x, negative y
+        if object_index == 1:  # First object
+            target_pos = (2, -3)
+        elif object_index == 2:  # Second object
+            target_pos = (3, -2)
+        elif object_index == 3:  # Third object
+            target_pos = (4, -4)
+        else:
+            target_pos = (3, -3)
         
-        if isinstance(action, tuple) and len(action) > 1:
-            action = action[1]  # Extract the actual action part
-        
-        print("action", action)
-        return action, next_state
-    else:
-        # Handle case where timestep+1 is out of range
-        print("Timestep out of range in game_results for correction")
-        # Return last state and EXIT action as fallback
-        return EXIT, new_state
+    # Apply the position change
+    actual_corrected_state[current_object]['pos'] = target_pos
+    actual_corrected_state[current_object]['done'] = True
+    
+    print("action", action_quadrant)
+    print("next_state with correction", actual_corrected_state)
+    return action_quadrant, actual_corrected_state
 
 
-def get_correction_from_human_keyboard_input(new_state, timestep, robot_action, object_type_tuple, object_tuples_list):
-    current_object = object_tuples_list[timestep] # (2,1,1)
+def get_correction_from_human_keyboard_input(new_state, timestep, robot_action, object_type_tuple, object_tuples):
+    current_object = object_tuples[timestep] # (2,1,1)
     # current_object_description = get_description(current_object) # TODO
     selected_quadrant = input(f"for the object that just moved {current_object}, which quadrant should it be in ([Q1, Q2, Q3, Q4]?")
     # selected_quadrant is going to be string like 'Q1'
@@ -396,45 +624,72 @@ def run_interaction():
     plt.show()
 
     state = initial_state
-    object_tuples_list = [keyname for keyname in initial_state.keys() if keyname != 'exit']
+    # Create a list of tuples in the correct order based on the object definition order
+    # This ensures we process objects in the order they were defined, not based on their state keys
+    object_tuples = []
+    for obj in list_of_present_object_tuples:
+        obj_tuple = (
+            COLORS[obj['color']],
+            MATERIALS[obj['material']],
+            OBJECTS[obj['object_type']],
+            obj['object_label']
+        )
+        object_tuples.append(obj_tuple)
+        
+    print(f"Processing objects in order: {object_tuples}")
+    
+    # Main interaction loop
     for t in range(len(list_of_present_object_tuples)):
         print("--- Initial state ---")
         render_game.render(state, t)
+        
+        # Robot takes action
         robot_action, new_state = get_weighted_robot_action(state, t, robot_beliefs, hypothesis_reward_space,
-                                                            list_of_present_object_tuples)  # take one of the objects and move it to a quadrant
+                                                            list_of_present_object_tuples)
+        
+        if robot_action == EXIT:
+            print("Robot chose to exit - no more actions to take")
+            break
+            
         print("new_state", new_state)
-        # pdb.set_trace()
         print("--- Robot moved to new state ---")
         render_game.render(new_state, t)
-        # set the objects back to not done
+        
+        # Prepare state for human correction
+        # We need to preserve the current object's "done" status for visualization
+        # but mark it as not done for action taking purposes
         new_state_reset_obj = copy.deepcopy(new_state)
-        current_object = object_tuples_list[t]
-        new_state_reset_obj[current_object]['done'] = False
+        current_object = object_tuples[t]
+        # Only reset the done flag for the current object being moved
+        if current_object in new_state_reset_obj:
+            new_state_reset_obj[current_object]['done'] = False
 
-        # User Input
-        # Asks where do you want yellow cup to go
-        # Input: 'Q1'
-        # human_correction, new_corrected_state = get_correction_from_human_keyboard_input(new_state_reset_obj, t, robot_action, list_of_present_object_tuples,
-        #                                                                   object_tuples_list) <-- this is not pretty, should be drag and drop
+        # Get correction from human - either automated or keyboard input
+        # Uncomment this for keyboard input:
+        # human_correction, new_corrected_state = get_correction_from_human_keyboard_input(
+        #     new_state_reset_obj, t, robot_action, list_of_present_object_tuples, object_tuples)
+        
+        # Get automated correction from the true reward tree
+        human_correction, new_corrected_state = get_correction_from_human(
+            new_state_reset_obj, t, robot_action, true_reward_tree, list_of_present_object_tuples)
 
-        # Get correction from human
-        human_correction, new_corrected_state = get_correction_from_human(new_state_reset_obj, t, robot_action, true_reward_tree,
-                                                                          list_of_present_object_tuples)
-
+        if human_correction == EXIT:
+            print("Human chose to exit - no more actions to take")
+            break
+            
         print("--- Human corrected to new state ---")
         render_game.render(new_corrected_state, t)
-        # pdb.set_trace()
         print("updating beliefs")
-        # render_game.render(state, t, "beliefs: state")
-        # render_game.render(new_state, t, "beliefs: new_state")
-        # render_game.render(new_corrected_state, t, "beliefs: new_corrected_state")
 
-        # Render, color human actions differently
-        s0_starting_state = copy.deepcopy(state)  # starting current state
-        sr_starting_state = copy.deepcopy(new_state)  # robot moved state
+        # Update robot beliefs based on the states
+        s0_starting_state = copy.deepcopy(state)          # starting current state
+        sr_starting_state = copy.deepcopy(new_state)      # robot moved state
         sh_starting_state = copy.deepcopy(new_corrected_state)  # human corrected state
         robot_beliefs = update_robot_beliefs(s0_starting_state, sr_starting_state, sh_starting_state, robot_beliefs,
                                              hypothesis_reward_space, list_of_present_object_tuples)
+                                             
+        # Update the state for next iteration
+        state = copy.deepcopy(new_corrected_state)
 
         # state[] = new_corrected_state
         plt.bar(np.arange(len(robot_beliefs)), height=robot_beliefs, tick_label=labels)
