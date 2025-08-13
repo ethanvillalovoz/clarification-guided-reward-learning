@@ -89,9 +89,9 @@ def plot_robot_beliefs(beliefs, labels, title, filename=None, highlight_index=No
             'True Model',
             ha='center',
             va='center',
-            color='white',
+            color='black',  # Changed from white to black for better visibility
             fontweight='bold',
-            fontsize=10
+            fontsize=11     # Slightly larger font size
         )
         
     # Add a subtle box around the plot
