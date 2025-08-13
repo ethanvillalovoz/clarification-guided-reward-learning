@@ -589,13 +589,18 @@ def update_robot_beliefs(s0_starting_state, sr_state, sh_state, robot_beliefs,
         new_beliefs.append(prob_theta_i_given_data)
 
     log.subsection("BELIEF UPDATE", color="magenta")
-    # Display updated beliefs in a formatted table
-    log.beliefs_table(new_beliefs, [f"Model {i}" for i in range(len(new_beliefs))], 
-                     indent=2, title="Updated Robot Beliefs:")
-    # Bayes' update
+    
+    # Bayes' update - normalize beliefs first
     new_beliefs = np.array(new_beliefs)
-    # robot_beliefs = robot_beliefs * likelihoods
     new_beliefs /= np.sum(new_beliefs)
+    
+    # Get the model names - use the same names as in the main function
+    model_names = ['Ethan', 'Michelle', 'Annika', 'Admoni', 'Simmons', 'Suresh', 
+                   'Ben', 'Ada', 'Abhijat', 'Maggie', 'Zulekha', 'Pat']
+    
+    # Display updated beliefs in a formatted table (using normalized values)
+    log.beliefs_table(new_beliefs, model_names[:len(new_beliefs)], 
+                     indent=2, title="Updated Robot Beliefs:")
     return new_beliefs
 
 
@@ -704,8 +709,17 @@ def ask_feature_clarification_question(robot_beliefs, hypothesis_reward_space,
 
     # normalize
     new_beliefs = np.array(new_robot_beliefs)
-    # robot_beliefs = robot_beliefs * likelihoods
     new_beliefs /= np.sum(new_beliefs)
+    
+    # Get the model names - use the same names as in the main function
+    model_names = ['Ethan', 'Michelle', 'Annika', 'Admoni', 'Simmons', 'Suresh', 
+                   'Ben', 'Ada', 'Abhijat', 'Maggie', 'Zulekha', 'Pat']
+    
+    # Display the updated beliefs after clarification
+    log.subsection("BELIEFS AFTER CLARIFICATION", color="magenta")
+    log.beliefs_table(new_beliefs, model_names[:len(new_beliefs)], 
+                     indent=2, title="Updated Robot Beliefs After Feature Clarification:")
+    
     return new_beliefs
 
 # Run the interaction loop
