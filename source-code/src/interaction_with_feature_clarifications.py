@@ -6,6 +6,106 @@ import pdb
 
 # imports
 from multi_object_custom_mdp_v5 import *
+import seaborn as sns
+import matplotlib as mpl
+
+def plot_robot_beliefs(beliefs, labels, title, filename=None, highlight_index=None):
+    """
+    Creates a visually appealing, research-grade plot of robot beliefs.
+    
+    Parameters:
+    - beliefs: numpy array of belief probabilities
+    - labels: list of labels for each belief
+    - title: title of the plot
+    - filename: if provided, save the figure to this file
+    - highlight_index: index of belief to highlight (e.g., true model)
+    """
+    # Set styling for research-grade plots
+    sns.set_style("whitegrid")
+    plt.rcParams['font.family'] = 'sans-serif'
+    plt.rcParams['font.sans-serif'] = ['Arial']
+    plt.rcParams['axes.labelsize'] = 14
+    plt.rcParams['axes.titlesize'] = 16
+    plt.rcParams['xtick.labelsize'] = 12
+    plt.rcParams['ytick.labelsize'] = 12
+    
+    # Create color palette - use professional blues with highlight
+    if highlight_index is not None:
+        colors = ['#1f77b4'] * len(beliefs)  # Default blue
+        colors[highlight_index] = '#ff7f0e'  # Orange for highlight
+    else:
+        colors = sns.color_palette("Blues_d", len(beliefs))
+    
+    # Create the figure with appropriate size
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    # Create barplot with enhanced styling
+    x = np.arange(len(beliefs))
+    bars = ax.bar(
+        x, beliefs, 
+        width=0.7,
+        color=colors,
+        edgecolor='black',
+        linewidth=0.8,
+        alpha=0.85
+    )
+    
+    # Add belief values on top of bars (only for significant values)
+    for i, v in enumerate(beliefs):
+        if v >= 0.05:  # Only show labels for significant beliefs
+            ax.text(
+                i, v + 0.01,
+                f'{v:.3f}',
+                ha='center',
+                fontsize=10,
+                fontweight='bold' if highlight_index == i else 'normal'
+            )
+    
+    # Add labels and title with better formatting
+    ax.set_xlabel('Preference Models', fontweight='bold')
+    ax.set_ylabel('Belief Probability', fontweight='bold')
+    ax.set_title(title, fontsize=18, fontweight='bold', pad=20)
+    
+    # Set x-ticks and rotate labels for better readability
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, rotation=45, ha='right')
+    
+    # Set y-axis to start at 0 and have a bit of padding at the top
+    y_max = max(beliefs) * 1.15
+    ax.set_ylim(0, y_max)
+    
+    # Add light horizontal grid lines
+    ax.yaxis.grid(True, linestyle='--', alpha=0.7)
+    
+    # Remove top and right spines
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    
+    # Annotate the true model if highlighted
+    if highlight_index is not None:
+        ax.text(
+            highlight_index, 
+            beliefs[highlight_index] / 2,
+            'True Model',
+            ha='center',
+            va='center',
+            color='white',
+            fontweight='bold',
+            fontsize=10
+        )
+        
+    # Add a subtle box around the plot
+    fig.patch.set_facecolor('#f8f9fa')
+    ax.set_facecolor('#f8f9fa')
+    
+    # Tight layout for better spacing
+    plt.tight_layout()
+    
+    # Save if filename is provided
+    if filename:
+        plt.savefig(filename, dpi=300, bbox_inches='tight')
+        
+    return fig, ax
 
 
 # Initialize robot beliefs
@@ -616,11 +716,9 @@ def run_interaction():
     # print("hypothesis_reward_space", hypothesis_reward_space)
     robot_beliefs = initialize_robot_beliefs(hypothesis_reward_space)
 
-    plt.bar(np.arange(len(robot_beliefs)), height=robot_beliefs, tick_label=labels)
-    plt.title('Robot Beliefs')
-    plt.xlabel('Model Preferences')
-    plt.ylabel('Certainty')
-    plt.xticks(rotation=90)
+    # Use enhanced visualization for robot beliefs
+    plot_robot_beliefs(robot_beliefs, labels, 'Initial Robot Beliefs', 
+                      highlight_index=0)  # Assuming Ethan (index 0) is the true model
     plt.show()
 
     state = initial_state
@@ -692,11 +790,11 @@ def run_interaction():
         state = copy.deepcopy(new_corrected_state)
 
         # state[] = new_corrected_state
-        plt.bar(np.arange(len(robot_beliefs)), height=robot_beliefs, tick_label=labels)
-        plt.title('Robot Beliefs (prior to the question)')
-        plt.xlabel('Model Preferences')
-        plt.ylabel('Certainty')
-        plt.xticks(rotation=90)
+        # Enhanced visualization prior to clarification question
+        plot_robot_beliefs(robot_beliefs, labels, 
+                          f'Robot Beliefs (prior to clarification, timestep {t+1})', 
+                          filename=f'beliefs_prior_clarification_t{t+1}.png',
+                          highlight_index=0)  # Assuming Ethan (index 0) is the true model
         plt.show()
 
         # Clarification question step can be added here
@@ -707,11 +805,11 @@ def run_interaction():
                                                                current_object)
         robot_beliefs = new_robot_beliefs
 
-        plt.bar(np.arange(len(robot_beliefs)), height=robot_beliefs, tick_label=labels)
-        plt.title('Robot Beliefs (after clarification)')
-        plt.xlabel('Model Preferences')
-        plt.ylabel('Certainty')
-        plt.xticks(rotation=90)
+        # Enhanced visualization for after clarification
+        plot_robot_beliefs(robot_beliefs, labels, 
+                          f'Robot Beliefs (after clarification, timestep {t+1})', 
+                          filename=f'beliefs_after_clarification_t{t+1}.png',
+                          highlight_index=0)  # Assuming Ethan (index 0) is the true model
         plt.show()
 
         # Break if task is done (Define your task completion condition)
