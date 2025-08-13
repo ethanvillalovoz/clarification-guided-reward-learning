@@ -1018,7 +1018,7 @@ class Gridworld:
         plt.suptitle('Object Placement Environment', 
                  fontsize=20, fontweight='bold', y=0.98, color='#333333')
         
-        # Format the state type for display
+        # Format the state type for display with specific iteration colors
         state_type_display = ""
         title_color = '#333333'
         
@@ -1026,17 +1026,19 @@ class Gridworld:
             # Add a subtle green background for final state
             plt.axvspan(self.x_min, self.x_max, self.y_min, self.y_max, color='green', alpha=0.05, zorder=-1)
             state_type_display = "Final State"
-            title_color = '#007700'
+            title_color = '#007700'  # Green for final state
         elif state_type == "initial":
             state_type_display = "--- Initial State ---"
+            title_color = '#333333'  # Dark gray for initial state
         elif state_type == "robot_moved":
             state_type_display = "--- Robot Moved ---"
             title_color = '#0066cc'  # Blue for robot actions
         elif state_type == "human_corrected":
             state_type_display = "--- Human Corrected ---"
-            title_color = '#cc5500'  # Orange for human corrections
+            title_color = '#e41a1c'  # Red for human corrections (matching diagram color)
         else:
             state_type_display = "Current State"
+            title_color = '#333333'  # Default dark gray
         
         # Add information about which object is being moved
         object_info = ""
@@ -1048,11 +1050,11 @@ class Gridworld:
             object_info = f"Moving: {color_name.capitalize()} {material_name} {object_name}"
         
         # Create a title with proper layout and even spacing: main title at top, state type followed by object info
-        # Create separate titles with controlled spacing
+        # Create separate titles with controlled spacing - color matched to the specific iteration type
         ax.set_title(f"{state_type_display}", 
                 fontsize=16, color=title_color, fontweight='bold', pad=25)
         
-        # Add subtitle with object info at consistent distance
+        # Add subtitle with object info at consistent distance - using the same color as the state type for consistency
         plt.figtext(0.5, 0.91, f"{object_info} (Time Step: {timestep})", 
                 fontsize=14, color=title_color, ha='center')
             
