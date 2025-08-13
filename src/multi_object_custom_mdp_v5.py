@@ -1292,17 +1292,10 @@ class Gridworld:
         plt.xlabel('X Position', fontsize=14, labelpad=10, fontweight='bold', color='#333333')
         plt.ylabel('Y Position', fontsize=14, labelpad=10, fontweight='bold', color='#333333')
         
-        # Create comprehensive legend for object types with color indicators
+        # Create focused legend with only essential elements
         legend_elements = []
         
-        # Add object types to legend
-        for obj_type in sorted(set([o[2] for o in self.object_type_tuple])):
-            obj_name = OBJECTS_IDX[obj_type].capitalize()
-            legend_elements.append(plt.Line2D([0], [0], marker='o', color='w', 
-                                            markerfacecolor='#333333', markersize=10, 
-                                            label=f"{obj_name}"))
-        
-        # Add color types to legend
+        # Add color types to legend - keep these as they're important
         for color_idx in sorted(set([o[0] for o in self.object_type_tuple])):
             color_name = COLORS_IDX.get(color_idx, 'unknown').capitalize()
             marker_color = '#e41a1c' if color_idx == 1 else '#ff7f00' if color_idx == 2 else '#984ea3'
@@ -1326,7 +1319,7 @@ class Gridworld:
         # Position legend in a more suitable location with better styling
         legend = plt.legend(handles=legend_elements, loc='lower left', 
                            title="Environment Elements", title_fontsize=12,
-                           bbox_to_anchor=(0.02, -0.02), ncol=2, fontsize=9,
+                           bbox_to_anchor=(0.02, -0.02), ncol=2, fontsize=10,
                            framealpha=0.9, fancybox=True, shadow=True)
         legend.get_frame().set_edgecolor('#666666')
                            
