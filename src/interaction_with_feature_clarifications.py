@@ -1,11 +1,47 @@
 """
 Clarification-Guided Reward Learning with Feature Explanations
 
-Authors: Ethan Villalovz, Michelle Zhao
+This module implements an interactive robot learning system that learns human preferences
+through a combination of demonstrations, corrections, and feature clarification questions.
+The system maintains and updates a Bayesian belief distribution over potential preference models.
+
+Authors: Ethan Villalovoz, Michelle Zhao
 Project: RISS 2024 Summer Project - Bayesian Learning Interaction
-Description: Incorporating the entire interaction between the human and robot object simulation. 
-Updates the human preference through Bayesian inference after each time step.
+License: MIT License
+Version: 1.0.0
 """
+
+# Standard library imports
+import os
+import copy
+import sys
+from pathlib import Path
+from typing import List, Dict, Tuple, Any, Optional, Union
+
+# Third-party imports
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Local imports
+from multi_object_custom_mdp_v5 import (
+    Gridworld, COLORS, COLORS_IDX, MATERIALS, MATERIALS_IDX, OBJECTS, OBJECTS_IDX,
+    f_Ethan, f_Michelle, f_Annika, f_Admoni, f_Simmons, f_Suresh, f_Ben, f_Ada,
+    f_Abhijat, f_Maggie, f_Zulekha, f_Pat, obj_1, obj_2, obj_3, EXIT
+)
+
+try:
+    from utils.console import log
+except ImportError:
+    # If utils module not found, use the logger from multi_object_custom_mdp_v5
+    from multi_object_custom_mdp_v5 import log
+
+# Type aliases for better code readability
+State = Dict[Tuple, Dict[str, Any]]
+ObjectTuple = Tuple[int, int, int, int]  # (color_idx, material_idx, object_idx, object_label)
+ObjectConfig = Dict[str, Union[str, int]]
+PreferenceTree = Dict[str, Any]
+Beliefs = np.ndarray
 
 # Standard library imports
 import os
@@ -28,17 +64,43 @@ except ImportError:
     # If utils module not found, use the logger from multi_object_custom_mdp_v5
     pass
 
-def plot_robot_beliefs(beliefs, labels, title, filename=None, highlight_index=None):
+# ============================
+# Visualization Functions
+# ============================
+
+def plot_robot_beliefs(beliefs: np.ndarray, 
+                      labels: List[str], 
+                      title: str, 
+                      filename: Optional[str] = None, 
+                      highlight_index: Optional[int] = None) -> Tuple[plt.Figure, plt.Axes]:
     """
     Creates a visually appealing, research-grade plot of robot beliefs.
     
+    This function generates a bar chart visualization of the robot's belief distribution
+    over different preference models, with optional highlighting of the true model.
+    
     Parameters:
-    - beliefs: numpy array of belief probabilities
-    - labels: list of labels for each belief
-    - title: title of the plot
-    - filename: if provided, save the figure to this file
-    - highlight_index: index of belief to highlight (e.g., true model)
+    -----------
+    beliefs : np.ndarray
+        Numpy array of belief probabilities, should sum to 1.0
+    labels : List[str]
+        List of labels for each belief (model names)
+    title : str
+        Title of the plot
+    filename : Optional[str]
+        If provided, save the figure to this file path
+    highlight_index : Optional[int]
+        Index of belief to highlight (e.g., true model)
+        
+    Returns:
+    --------
+    Tuple[plt.Figure, plt.Axes]
+        The matplotlib figure and axes objects for further customization if needed
     """
+    # Validate inputs
+    if len(beliefs) != len(labels):
+        raise ValueError(f"Length mismatch: beliefs ({len(beliefs)}) and labels ({len(labels)})")
+    
     # Set styling for research-grade plots
     sns.set_style("whitegrid")
     plt.rcParams['font.family'] = 'sans-serif'
@@ -140,9 +202,25 @@ def plot_robot_beliefs(beliefs, labels, title, filename=None, highlight_index=No
     return fig, ax
 
 
-# Initialize robot beliefs
-def initialize_robot_beliefs(hypothesis_reward_space):
-    # set to uniform
+# ============================
+# Belief Initialization and Update
+# ============================
+
+def initialize_robot_beliefs(hypothesis_reward_space: List[PreferenceTree]) -> Beliefs:
+    """
+    Initialize the robot's belief distribution over hypothesis space.
+    
+    Parameters:
+    -----------
+    hypothesis_reward_space : List[PreferenceTree]
+        List of preference models to consider
+        
+    Returns:
+    --------
+    Beliefs
+        Uniform distribution over the hypothesis space
+    """
+    # Initialize with uniform prior (principle of maximum entropy)
     return np.ones(len(hypothesis_reward_space)) / len(hypothesis_reward_space)
 
 
@@ -189,7 +267,40 @@ def initialize_robot_beliefs(hypothesis_reward_space):
 #
 #     return action, new_state
 
-def get_weighted_robot_action(state, timestep, robot_beliefs, hypothesis_reward_space, object_type_tuple):
+# ============================
+# Robot Action Functions
+# ============================
+
+def get_weighted_robot_action(state: State, 
+                             timestep: int, 
+                             robot_beliefs: Beliefs, 
+                             hypothesis_reward_space: List[PreferenceTree], 
+                             object_type_tuple: List[ObjectConfig]) -> Tuple[str, State]:
+    """
+    Determine the robot's next action based on its current belief distribution.
+    
+    This function samples a preference model from the robot's belief distribution,
+    then uses that model to determine the best quadrant for placing the current object.
+    
+    Parameters:
+    -----------
+    state : State
+        Current state of the environment
+    timestep : int
+        Current timestep, determines which object to place
+    robot_beliefs : Beliefs
+        Robot's current belief distribution over preference models
+    hypothesis_reward_space : List[PreferenceTree]
+        List of preference models to consider
+    object_type_tuple : List[ObjectConfig]
+        List of object configurations
+        
+    Returns:
+    --------
+    Tuple[str, State]
+        The selected action (quadrant or EXIT) and resulting state
+    """
+    # Sample a preference model based on current beliefs
     tree_idx = np.random.choice(np.arange(len(robot_beliefs)), p=robot_beliefs)
     tree = hypothesis_reward_space[tree_idx]
     log.debug(f"Robot using preference model: {tree_idx}")
@@ -375,7 +486,39 @@ def get_weighted_robot_action(state, timestep, robot_beliefs, hypothesis_reward_
 #     print(action)
 #     return action, corrected_state
 
-def get_correction_from_human(new_state, timestep, robot_action, true_reward_tree, object_type_tuple):
+# ============================
+# Human Interaction Functions
+# ============================
+
+def get_correction_from_human(new_state: State, 
+                             timestep: int, 
+                             robot_action: str, 
+                             true_reward_tree: PreferenceTree, 
+                             object_type_tuple: List[ObjectConfig]) -> Tuple[str, State]:
+    """
+    Simulate human correction based on true preference model.
+    
+    This function uses the true preference model to determine how a human would
+    correct the robot's action, moving the object to its optimal position.
+    
+    Parameters:
+    -----------
+    new_state : State
+        State after robot action
+    timestep : int
+        Current timestep, determines which object to correct
+    robot_action : str
+        Action chosen by robot
+    true_reward_tree : PreferenceTree
+        The ground truth preference model representing human preferences
+    object_type_tuple : List[ObjectConfig]
+        List of object configurations
+        
+    Returns:
+    --------
+    Tuple[str, State]
+        The correction action (quadrant or EXIT) and resulting corrected state
+    """
     # Create a list of tuples in the correct order based on object_type_tuple
     ordered_object_tuples = []
     for obj in object_type_tuple:
@@ -523,18 +666,45 @@ def get_correction_from_human_keyboard_input(new_state, timestep, robot_action, 
     return action, next_state
 
 
-# Update robot beliefs using Bayesian inference
-def update_robot_beliefs(s0_starting_state, sr_state, sh_state, robot_beliefs,
-                         hypothesis_reward_space, object_type_tuple):
-    # check condition
-    cond_1, cond_2, cond_3 = False, False, False
-
-    if sh_state != sr_state:
-        cond_1 = True
-    if sr_state == sh_state and s0_starting_state != sr_state:
-        cond_2 = True
-    if sh_state != s0_starting_state:
-        cond_3 = True
+def update_robot_beliefs(s0_starting_state: State, 
+                      sr_state: State, 
+                      sh_state: State, 
+                      robot_beliefs: Beliefs,
+                      hypothesis_reward_space: List[PreferenceTree], 
+                      object_type_tuple: List[ObjectConfig]) -> Beliefs:
+    """
+    Update robot beliefs using Bayesian inference based on human corrections.
+    
+    This function implements Bayesian belief updates based on the observed human correction,
+    calculating likelihoods of the correction under different preference models.
+    
+    Parameters:
+    -----------
+    s0_starting_state : State
+        Initial state before robot action
+    sr_state : State
+        State after robot action
+    sh_state : State
+        State after human correction
+    robot_beliefs : Beliefs
+        Prior belief distribution
+    hypothesis_reward_space : List[PreferenceTree]
+        List of preference models
+    object_type_tuple : List[ObjectConfig]
+        List of object configurations
+        
+    Returns:
+    --------
+    Beliefs
+        Updated belief distribution after incorporating human feedback
+    """
+    # Determine which conditions apply for this interaction
+    # cond_1: Human corrected the robot's action (disagreement)
+    # cond_2: Human agreed with robot's action, which changed the state
+    # cond_3: Human's correction differed from initial state
+    cond_1 = (sh_state != sr_state)
+    cond_2 = (sr_state == sh_state and s0_starting_state != sr_state)
+    cond_3 = (sh_state != s0_starting_state)
 
     # Placeholder for likelihood computation and Bayes update
     # likelihoods = []
@@ -604,49 +774,143 @@ def update_robot_beliefs(s0_starting_state, sr_state, sh_state, robot_beliefs,
     return new_beliefs
 
 
-def ask_clarification_questions(new_state, corrected_state, object_type_tuple):
-    # Placeholder for dialogue system
-    questions = [
-        "Why did you prefer this new position over the one I chose?",
-        "Can you explain why this location is better?",
-        "Which attribute of the object influenced your correction the most?",
-        "Was the position of the object the main reason for your correction, or was it something else?",
-        "How would you like me to position similar objects in the future?",
-        "Are there specific rules I should follow when placing objects like this?",
-        "I think you prefer objects to be placed closer to the center. Is that correct?",
-        "It seems like you prefer objects to be in quadrant Q1. Is that true for all objects?"
-    ]
+# ============================
+# Feature Clarification Functions
+# ============================
 
-    for question in questions:
-        log.subsection("CLARIFICATION QUESTION", color="yellow", bold=True)
-        log.info(question, indent=2, color="yellow")
-        # In a real implementation, this would be where the robot receives and processes the human's response
+def ask_clarification_questions(new_state: State, 
+                               corrected_state: State, 
+                               object_type_tuple: List[ObjectConfig]) -> None:
+    """
+    Present a series of clarification questions to better understand human preferences.
+    
+    Note: This is a placeholder function for demonstrating possible clarification questions.
+    In a production environment, this would interface with a dialogue system.
+    
+    Parameters:
+    -----------
+    new_state : State
+        State after robot action
+    corrected_state : State
+        State after human correction
+    object_type_tuple : List[ObjectConfig]
+        List of object configurations
+    """
+    # Categorized clarification questions for preference elicitation
+    questions = {
+        "Preference Understanding": [
+            "Why did you prefer this new position over the one I chose?",
+            "Can you explain why this location is better?"
+        ],
+        "Attribute Focus": [
+            "Which attribute of the object influenced your correction the most?",
+            "Was the position of the object the main reason for your correction, or was it something else?"
+        ],
+        "Future Guidance": [
+            "How would you like me to position similar objects in the future?",
+            "Are there specific rules I should follow when placing objects like this?"
+        ],
+        "Hypothesis Testing": [
+            "I think you prefer objects to be placed closer to the center. Is that correct?",
+            "It seems like you prefer objects to be in quadrant Q1. Is that true for all objects?"
+        ]
+    }
+
+    # Display sample questions from each category
+    for category, category_questions in questions.items():
+        log.subsection(f"CLARIFICATION: {category}", color="yellow", bold=True)
+        for question in category_questions:
+            log.info(question, indent=2, color="yellow")
+        log.info("", indent=1)  # Add spacing between categories
+        
+    log.info("Note: In a production system, these questions would be asked interactively", 
+            indent=1, color="cyan", bold=True)
 
 
-def get_relevant_features(preferences, attributes, list_of_relevant_features):
-    if isinstance(preferences, dict) and 'Q1' in preferences:  # Base case: preferences is a reward value
+def get_relevant_features(preferences: Dict[str, Any], 
+                         attributes: List[str], 
+                         list_of_relevant_features: List[str]) -> Tuple[Any, List[str]]:
+    """
+    Recursively navigate the preference tree to identify relevant features.
+    
+    This function traverses the hierarchical preference structure to determine
+    which object features (color, type, material) are relevant to the placement decision.
+    
+    Parameters:
+    -----------
+    preferences : Dict[str, Any]
+        Current node in the preference tree
+    attributes : List[str]
+        List of attributes to search for in the preference tree
+    list_of_relevant_features : List[str]
+        Accumulator for relevant features found so far
+        
+    Returns:
+    --------
+    Tuple[Any, List[str]]
+        The final preference value and list of relevant features
+    """
+    # Base case: we've reached a leaf node with quadrant rewards
+    if isinstance(preferences, dict) and 'Q1' in preferences:
         return preferences, list_of_relevant_features
 
+    # Recursive case: traverse the preference tree
     if isinstance(preferences, dict):
         for attr in attributes:
             if attr in preferences:
+                # This attribute is relevant to the decision
                 list_of_relevant_features.append(attr)
-                # print(f"got reward {self.get_reward_value(preferences[attr], attributes, quadrants)} for attributes {attributes} at quadrant {quadrants}")
                 return get_relevant_features(preferences[attr], attributes, list_of_relevant_features)
 
+    # Fallback to "other" if no specific attribute match is found
     if 'other' in preferences:
-        # print("found other:", preferences['other'])
         return preferences['other'], list_of_relevant_features
-def ask_feature_clarification_question(robot_beliefs, hypothesis_reward_space,
-                                       s0_starting_state, sr_starting_state, sh_starting_state, timestep,
-                                       current_object):
+    
+    # Return empty dict as default if structure doesn't match expected format
+    return {}, list_of_relevant_features
+def ask_feature_clarification_question(robot_beliefs: Beliefs, 
+                                  hypothesis_reward_space: List[PreferenceTree],
+                                  s0_starting_state: State, 
+                                  sr_starting_state: State, 
+                                  sh_starting_state: State, 
+                                  timestep: int,
+                                  current_object: ObjectTuple) -> Beliefs:
+    """
+    Ask targeted questions about which features are relevant to the human's preference.
+    
+    This function presents a question to determine which object features (color, type, material)
+    influenced the human's placement decision, then updates beliefs based on the response.
+    
+    Parameters:
+    -----------
+    robot_beliefs : Beliefs
+        Current belief distribution
+    hypothesis_reward_space : List[PreferenceTree]
+        List of preference models
+    s0_starting_state : State
+        Initial state
+    sr_starting_state : State
+        State after robot action
+    sh_starting_state : State
+        State after human correction
+    timestep : int
+        Current timestep
+    current_object : ObjectTuple
+        Current object being placed
+        
+    Returns:
+    --------
+    Beliefs
+        Updated belief distribution after incorporating feature clarification
+    """
+    # Extract object properties
     color_idx, material_idx, object_idx, object_label = current_object
     color = COLORS_IDX[color_idx]
     material = MATERIALS_IDX[material_idx]
     object_type = OBJECTS_IDX[object_idx]
     attributes = [object_type, color, material]
 
-
+    # Analyze which features are relevant in each hypothesis model
     hyp_idx_to_relevant_features = {}
     for hyp_idx in range(len(hypothesis_reward_space)):
         log.debug(f"Examining hypothesis index: {hyp_idx}", indent=2, color="blue")
@@ -722,12 +986,24 @@ def ask_feature_clarification_question(robot_beliefs, hypothesis_reward_space,
     
     return new_beliefs
 
-# Run the interaction loop
+# ============================
+# Main Interaction Loop
+# ============================
+
 def run_interaction():
     """
-    Main interaction loop for the clarification-guided reward learning system.
-    This function simulates the interaction between a robot and human where the robot
-    learns human preferences through observations, corrections, and asking clarifying questions.
+    Execute the main interaction loop for the clarification-guided reward learning system.
+    
+    This function orchestrates the complete interaction workflow:
+    1. Initialize the robot's belief system and environment
+    2. For each object to place:
+       a. Robot takes action based on current beliefs
+       b. Human provides correction
+       c. Robot updates beliefs based on correction
+       d. Robot asks clarification questions
+       e. Robot further updates beliefs based on responses
+    
+    The function visualizes belief updates at each step and saves the results.
     """
     log.section("INITIALIZING CLARIFICATION-GUIDED REWARD LEARNING", color="blue", bold=True, 
                 top_line=True, bottom_line=True)
@@ -939,75 +1215,47 @@ def run_interaction():
         state = new_corrected_state
 
 
-# Start of program
+# ============================
+# Main Entry Point
+# ============================
+
 if __name__ == '__main__':
-    run_interaction()
+    try:
+        run_interaction()
+    except KeyboardInterrupt:
+        log.info("\nInterruption received, gracefully exiting...", color="yellow", bold=True)
+    except Exception as e:
+        log.critical(f"An unexpected error occurred: {str(e)}")
+        import traceback
+        log.debug(traceback.format_exc())
+    finally:
+        log.section("SESSION ENDED", color="blue", bold=True)
 
-# more diverse tree, fix the "other in tree" issue (characteristics), reduce the size of all tree values (-10, and 10), push.
-# DONE
+"""
+Future Development Ideas:
 
-# big task - handle multiple objects. Code needs modifications.
-# big task - handle multiple objects. Code needs modifications.
-# for multiple objects, you need to force/check human correction should be on the object the robot just moved.
+1. Enhanced Question Generation
+   - Generate questions dynamically based on the robot's uncertainty
+   - Prioritize questions that maximize information gain
+   - Use natural language generation for more natural dialogue
 
+2. Improved Belief Updates
+   - Implement more sophisticated Bayesian update mechanisms
+   - Add confidence-weighted updates based on human certainty
+   - Handle noisy or inconsistent human feedback
 
-# brainstorm types of questions you would ask (imagine you are the robot and the human just gave you a correction),
+3. Natural Language Integration
+   - Allow open-ended natural language responses
+   - Use semantic parsing to extract relevant information
+   - Build a knowledge graph of preferences over time
 
-# Clarification Questions
-#
-# Preference Clarification:
-# "Why did you prefer this new position over the one I chose?"
-# "Can you explain why this location is better?"
-# Attribute Focus:
-# "Which attribute of the object influenced your correction the most?"
-# "Was the position of the object the main reason for your correction, or was it something else?"
-# Contextual Understanding:
-# "Is there a specific context or scenario in which this placement is better?"
-# "How does this placement fit into your overall plan or goal?"
-#
-# Preference Questions
-#
-# Future Preferences:
-# "How would you like me to position similar objects in the future?"
-# "Are there specific rules I should follow when placing objects like this?"
-# Comparative Questions:
-# "Between these two positions, which one do you prefer and why?"
-# "If I had placed the object here instead, would that have been acceptable?"
-#
-# Hypothesis Testing Questions
-#
-# Hypothesis Validation:
-# "I think you prefer objects to be placed closer to the center. Is that correct?"
-# "It seems like you prefer objects to be in quadrant Q1. Is that true for all objects?"
-# Scenario Simulation:
-# "If this object were larger, would you still prefer this position?"
-# "What if there were more objects in the environment? How would that change your preference?"
+4. Active Learning Strategies
+   - Implement information-theoretic query selection
+   - Balance exploration vs. exploitation in question asking
+   - Design questions to disambiguate between competing hypotheses
 
-
-# brainstorm how to bootstrap the learning via language.
-# 1. Natural Language Instructions
-#
-# Allow the human to provide detailed feedback using natural language. For example:
-# "Place the object near the top left corner but not too close to the edge."
-# "I prefer objects to be placed in well-lit areas."
-# 2. Active Learning
-#
-# Implement active learning where the robot actively asks questions to refine its understanding:
-# "Do you prefer the object to be placed closer to the center or the edge?"
-# "Is it more important for the object to be accessible or out of the way?"
-# 3. Semantic Parsing
-#
-# Use semantic parsing to convert natural language instructions into a formal representation that the robot can understand and act upon. For example, converting "place the object near the top left corner" into coordinates or specific actions.
-# 4. Reinforcement Learning with Natural Language
-#
-# Integrate natural language feedback into a reinforcement learning framework where the robot updates its policies based on human feedback:
-# Positive Feedback: "Good job, this is the correct position."
-# Negative Feedback: "No, this is not where I want it."
-# 5. Knowledge Graphs
-#
-# Build knowledge graphs that capture human preferences and rules about object placement. Update these graphs with new information obtained through natural language interactions.
-# 6. Interactive Dialogue Systems
-#
-# Develop an interactive dialogue system where the robot and human can have a back-and-forth conversation to clarify and refine preferences:
-# Robot: "Do you want the object in quadrant Q1?"
-# Human: "Yes, but closer to the center."
+5. User Experience Improvements
+   - Add visualization of belief evolution over time
+   - Provide explanations for robot's decisions
+   - Allow reviewing and revising past interactions
+"""
