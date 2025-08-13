@@ -1,13 +1,32 @@
-# Authors: Ethan Villalovz, Michelle Zhao
-# Project: RISS 2024 Summer Project - Bayesian Learning Interaction
-# Description: Incorporating the entire interaction between the human and robot object simulation. Updates the human
-# preference through bayesian inference after each time step
-import pdb
+"""
+Clarification-Guided Reward Learning with Feature Explanations
 
-# imports
-from multi_object_custom_mdp_v5 import *
+Authors: Ethan Villalovz, Michelle Zhao
+Project: RISS 2024 Summer Project - Bayesian Learning Interaction
+Description: Incorporating the entire interaction between the human and robot object simulation. 
+Updates the human preference through Bayesian inference after each time step.
+"""
+
+# Standard library imports
+import os
+import sys
+import copy
+import pdb
+from pathlib import Path
+
+# Third-party imports
+import numpy as np
 import seaborn as sns
 import matplotlib as mpl
+import matplotlib.pyplot as plt
+
+# Local imports
+from multi_object_custom_mdp_v5 import *
+try:
+    from utils.console import log
+except ImportError:
+    # If utils module not found, use the logger from multi_object_custom_mdp_v5
+    pass
 
 def plot_robot_beliefs(beliefs, labels, title, filename=None, highlight_index=None):
     """
@@ -116,7 +135,7 @@ def plot_robot_beliefs(beliefs, labels, title, filename=None, highlight_index=No
         # Save to the beliefs directory with the provided filename
         save_path = os.path.join(beliefs_dir, filename)
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"Saved belief visualization to {save_path}")
+        log.info(f"📊 Saved belief visualization to {save_path}", color="cyan")
         
     return fig, ax
 
@@ -172,9 +191,8 @@ def initialize_robot_beliefs(hypothesis_reward_space):
 
 def get_weighted_robot_action(state, timestep, robot_beliefs, hypothesis_reward_space, object_type_tuple):
     tree_idx = np.random.choice(np.arange(len(robot_beliefs)), p=robot_beliefs)
-    print("tree index:", tree_idx)
     tree = hypothesis_reward_space[tree_idx]
-    print(f"Using preference model: {tree_idx}")
+    log.debug(f"Robot using preference model: {tree_idx}")
     
     # Create a fresh policy using the current state
     tree_policy = Gridworld(tree, object_type_tuple)
@@ -195,12 +213,13 @@ def get_weighted_robot_action(state, timestep, robot_beliefs, hypothesis_reward_
         ordered_object_tuples.append(obj_tuple)
     
     if timestep >= len(ordered_object_tuples):
-        print("All objects have been processed")
+        log.success("✓ All objects have been processed", bold=True)
         return EXIT, state
         
     # Get the current object to move based on timestep
     current_object = ordered_object_tuples[timestep]
-    print(f"Current object to move (timestep {timestep}): {current_object}")
+    log.section(f"TIMESTEP {timestep}", color="blue", bold=True)
+    log.info(f"Current object: {current_object}", bold=True)
     
     # Get the next action from game_results
     if len(game_results) > 0:
@@ -208,7 +227,7 @@ def get_weighted_robot_action(state, timestep, robot_beliefs, hypothesis_reward_
         next_state = game_results[0][0]  # First step's resulting state
         action = game_results[0][1]      # First step's action
         
-        print("robot given state", state)
+        log.debug(f"Robot initial state: {state}", color="gray")
         
         # Get the object type, color, and material details
         color_idx, material_idx, object_idx, object_label = current_object
@@ -216,7 +235,8 @@ def get_weighted_robot_action(state, timestep, robot_beliefs, hypothesis_reward_
         color = COLORS_IDX[color_idx]
         material = MATERIALS_IDX[material_idx]
         
-        print(f"Robot moving: {color} {material} {object_type}")
+        log.subsection("ROBOT ACTION", color="green")
+        log.info(f"Moving: {color} {material} {object_type}", bold=True)
         
         # Get best quadrant from the selected tree's preferences
         best_quadrant = 'Q1'  # Default
@@ -246,10 +266,10 @@ def get_weighted_robot_action(state, timestep, robot_beliefs, hypothesis_reward_
                             best_quadrant = q
         except (KeyError, TypeError):
             # If there's any error navigating the tree, use default
-            print(f"Could not find exact preference for {color} {material} {object_type}, using default")
+            log.warning(f"Could not find exact preference for {color} {material} {object_type}, using default")
         
         action_quadrant = best_quadrant
-        print(f"Robot chose {action_quadrant} based on preferences")
+        log.info(f"Robot chose {action_quadrant} based on preferences", indent=2)
         
         # Create the action tuple
         action = (current_object, action_quadrant)
@@ -258,8 +278,8 @@ def get_weighted_robot_action(state, timestep, robot_beliefs, hypothesis_reward_
         if isinstance(action, tuple) and len(action) == 2:
             _, action_quadrant = action
         
-        print("robot action", action)
-        print("robot next", next_state)
+        log.debug(f"Robot action detail: {action}", indent=2)
+        log.debug(f"Robot next state: {next_state}", indent=2, color="gray")
         
         # Create a new state with the action applied
         action_obj, action_quadrant = None, None
@@ -318,11 +338,11 @@ def get_weighted_robot_action(state, timestep, robot_beliefs, hypothesis_reward_
             actual_new_state[action_obj]['pos'] = target_pos
             actual_new_state[action_obj]['done'] = True
             
-        print("action", action_quadrant)
+        log.debug(f"Action quadrant: {action_quadrant}", indent=2)
         return action_quadrant, actual_new_state
     else:
         # Handle case where no actions were found
-        print("No actions found in game_results")
+        log.error("No actions found in game_results")
         return EXIT, state
 # Get correction from human
 # def get_correction_from_human(new_state, timestep, robot_action, true_reward_tree, object_type_tuple):
@@ -368,11 +388,12 @@ def get_correction_from_human(new_state, timestep, robot_action, true_reward_tre
         ordered_object_tuples.append(obj_tuple)
     
     if timestep >= len(ordered_object_tuples):
-        print("All objects have been processed by human")
+        log.success("✓ All objects have been processed by human", bold=True)
         return EXIT, new_state
         
     current_object = ordered_object_tuples[timestep]
-    print(f"Human correcting object (timestep {timestep}): {current_object}")
+    log.subsection("HUMAN CORRECTION", color="red")
+    log.info(f"Correcting: {current_object}", bold=True)
     
     # Create a fresh policy using the human's preferred tree
     tree_policy = Gridworld(true_reward_tree, object_type_tuple)
@@ -387,7 +408,7 @@ def get_correction_from_human(new_state, timestep, robot_action, true_reward_tre
     color = COLORS_IDX[color_idx]
     material = MATERIALS_IDX[material_idx]
     
-    print(f"Human correcting: {color} {material} {object_type}")
+    log.info(f"Object details: {color} {material} {object_type}", indent=2)
     
     # Get best quadrant from the human's true reward tree
     best_quadrant = 'Q1'  # Default
@@ -417,13 +438,13 @@ def get_correction_from_human(new_state, timestep, robot_action, true_reward_tre
                         best_quadrant = q
     except (KeyError, TypeError):
         # If there's any error navigating the tree, use default
-        print(f"Could not find exact preference for {color} {material} {object_type}, using default")
+        log.warning(f"Could not find exact preference for {color} {material} {object_type}, using default")
     
     action_quadrant = best_quadrant
-    print(f"Human chose {action_quadrant} based on true preferences")
+    log.info(f"Human chose {action_quadrant} based on true preferences", indent=2)
     
-    print("new_state", new_state)
-    print("corrected action", (current_object, action_quadrant))
+    log.debug(f"Current state: {new_state}", indent=2, color="gray")
+    log.debug(f"Corrected action: ({current_object}, {action_quadrant})", indent=2)
     
     # Apply the correction to create a new state
     actual_corrected_state = copy.deepcopy(new_state)
@@ -474,8 +495,8 @@ def get_correction_from_human(new_state, timestep, robot_action, true_reward_tre
     actual_corrected_state[current_object]['pos'] = target_pos
     actual_corrected_state[current_object]['done'] = True
     
-    print("action", action_quadrant)
-    print("next_state with correction", actual_corrected_state)
+    log.debug(f"Action quadrant: {action_quadrant}", indent=2)
+    log.debug(f"Next state with correction: {actual_corrected_state}", indent=2, color="gray")
     return action_quadrant, actual_corrected_state
 
 
@@ -484,21 +505,21 @@ def get_correction_from_human_keyboard_input(new_state, timestep, robot_action, 
     # current_object_description = get_description(current_object) # TODO
     selected_quadrant = input(f"for the object that just moved {current_object}, which quadrant should it be in ([Q1, Q2, Q3, Q4]?")
     # selected_quadrant is going to be string like 'Q1'
-    print("selected_quadrant", selected_quadrant)
+    log.info(f"Human selected quadrant: {selected_quadrant}", indent=2)
 
     empty_reward_tree = {}
 
     tree_policy = Gridworld(empty_reward_tree, object_type_tuple, new_state)
     action = (current_object, selected_quadrant)
     next_state, team_rew, done = tree_policy.step_given_state(new_state,  action)
-    print("new_state", new_state)
-    print("corrected action", selected_quadrant)
-    print("next_state", next_state)
+    log.debug(f"Current state: {new_state}", indent=2, color="gray")
+    log.debug(f"Corrected action: {selected_quadrant}", indent=2)
+    log.debug(f"Next state: {next_state}", indent=2, color="gray")
     action = selected_quadrant
 
     # pdb.set_trace()
 
-    print("action", action)
+    log.debug(f"Action detail: {action}", indent=2)
     return action, next_state
 
 
@@ -520,7 +541,7 @@ def update_robot_beliefs(s0_starting_state, sr_state, sh_state, robot_beliefs,
     beta = 1
     new_beliefs = []
     for tree_idx in range(len(hypothesis_reward_space)):
-        print("tree_idx", tree_idx)
+        log.debug(f"Processing belief for tree index: {tree_idx}", color="blue")
         prior_belief_of_theta_i = robot_beliefs[tree_idx]  # P(theta_i)
 
         tree = hypothesis_reward_space[tree_idx]
@@ -530,9 +551,9 @@ def update_robot_beliefs(s0_starting_state, sr_state, sh_state, robot_beliefs,
         sr_reward = tree_policy.lookup_quadrant_reward(sr_state)
         sh_reward = tree_policy.lookup_quadrant_reward(sh_state)
 
-        print("s0_reward", s0_reward)
-        print("sr_reward", sr_reward)
-        print("sh_reward", sh_reward)
+        log.debug(f"Initial state reward: {s0_reward:.4f}", indent=2, color="gray")
+        log.debug(f"Robot state reward: {sr_reward:.4f}", indent=2, color="green")
+        log.debug(f"Human corrected state reward: {sh_reward:.4f}", indent=2, color="red")
 
         # Compute the likelihood of human correction given robot action and the hypothesis tree
         # likelihood = tree_policy.compute_likelihood(state, robot_action, human_correction)
@@ -540,33 +561,37 @@ def update_robot_beliefs(s0_starting_state, sr_state, sh_state, robot_beliefs,
         aggregated_likelihood = 1  # P(all d| tree theta_i)
 
         # print conditions
-        print("cond_1", cond_1)
-        print("cond_2", cond_2)
-        print("cond_3", cond_3)
+        log.debug("Bayesian update conditions:", indent=2)
+        log.debug(f"• Human > Robot: {cond_1}", indent=4, color=("green" if cond_1 else "red"))
+        log.debug(f"• Robot > Initial: {cond_2}", indent=4, color=("green" if cond_2 else "red"))
+        log.debug(f"• Human > Initial: {cond_3}", indent=4, color=("green" if cond_3 else "red"))
 
         if cond_1:
             beta_cond_1 = 5
             prob_sh_greater_than_sr = np.exp(beta_cond_1 * sh_reward) / (np.exp(beta_cond_1 * sr_reward) + np.exp(beta_cond_1 * sh_reward))
-            print("prob_sh_greater_than_sr", prob_sh_greater_than_sr)
+            log.debug(f"P(Human > Robot): {prob_sh_greater_than_sr:.4f}", indent=4, color="blue")
 
             aggregated_likelihood *= prob_sh_greater_than_sr
 
         if cond_2:
             beta_cond_2 = 0.5
             prob_sr_greater_than_s0 = np.exp(beta_cond_2 * sr_reward) / (np.exp(beta_cond_2 * sr_reward) + np.exp(beta_cond_2 * s0_reward))
-            print("prob_sr_greater_than_s0", prob_sr_greater_than_s0)
+            log.debug(f"P(Robot > Initial): {prob_sr_greater_than_s0:.4f}", indent=4, color="blue")
             aggregated_likelihood *= prob_sr_greater_than_s0
 
         if cond_3:
             beta_cond_3 = 0.5
             prob_sh_greater_than_s0 = np.exp(beta_cond_3 * sh_reward) / (np.exp(beta_cond_3 * sh_reward) + np.exp(beta_cond_3 * s0_reward))
-            print("prob_sh_greater_than_s0", prob_sh_greater_than_s0)
+            log.debug(f"P(Human > Initial): {prob_sh_greater_than_s0:.4f}", indent=4, color="blue")
             aggregated_likelihood *= prob_sh_greater_than_s0
 
         prob_theta_i_given_data = aggregated_likelihood * prior_belief_of_theta_i
         new_beliefs.append(prob_theta_i_given_data)
 
-    print("new_beliefs", new_beliefs)
+    log.subsection("BELIEF UPDATE", color="magenta")
+    # Display updated beliefs in a formatted table
+    log.beliefs_table(new_beliefs, [f"Model {i}" for i in range(len(new_beliefs))], 
+                     indent=2, title="Updated Robot Beliefs:")
     # Bayes' update
     new_beliefs = np.array(new_beliefs)
     # robot_beliefs = robot_beliefs * likelihoods
@@ -588,7 +613,8 @@ def ask_clarification_questions(new_state, corrected_state, object_type_tuple):
     ]
 
     for question in questions:
-        print(question)
+        log.subsection("CLARIFICATION QUESTION", color="yellow", bold=True)
+        log.info(question, indent=2, color="yellow")
         # In a real implementation, this would be where the robot receives and processes the human's response
 
 
@@ -618,11 +644,11 @@ def ask_feature_clarification_question(robot_beliefs, hypothesis_reward_space,
 
     hyp_idx_to_relevant_features = {}
     for hyp_idx in range(len(hypothesis_reward_space)):
-        print('hyp_idx', hyp_idx)
+        log.debug(f"Examining hypothesis index: {hyp_idx}", indent=2, color="blue")
         hypothesis_tree = hypothesis_reward_space[hyp_idx]
         pref_tree = hypothesis_tree['pref_values']
         quadrant_preference_tree, relevant_features = get_relevant_features(pref_tree, attributes, [])
-        print("relevant_features", relevant_features)
+        log.debug(f"Identified relevant features: {relevant_features}", indent=2)
         hyp_idx_to_relevant_features[hyp_idx] = relevant_features
 
     # ask question
@@ -636,7 +662,7 @@ def ask_feature_clarification_question(robot_beliefs, hypothesis_reward_space,
     if 'material' in human_response:
         true_relevant_features.append(material)
 
-    print("true_relevant_features", true_relevant_features)
+    log.info(f"True relevant features: {true_relevant_features}", indent=2, color="green", bold=True)
 
     # update based on human response
     likelihood_of_tree_given_correct_response = 0.8
@@ -661,12 +687,27 @@ def ask_feature_clarification_question(robot_beliefs, hypothesis_reward_space,
 
 # Run the interaction loop
 def run_interaction():
+    """
+    Main interaction loop for the clarification-guided reward learning system.
+    This function simulates the interaction between a robot and human where the robot
+    learns human preferences through observations, corrections, and asking clarifying questions.
+    """
+    log.section("INITIALIZING CLARIFICATION-GUIDED REWARD LEARNING", color="blue", bold=True, 
+                top_line=True, bottom_line=True)
+    
+    # Initialize the hypothesis space and belief system
     hypothesis_reward_space = [f_Ethan, f_Michelle, f_Annika, f_Admoni, f_Simmons, f_Suresh, f_Ben, f_Ada, f_Abhijat,
                                f_Maggie, f_Zulekha, f_Pat]
     labels = ['Ethan', 'Michelle', 'Annika', 'Admoni', 'Simmons', 'Suresh', 'Ben', 'Ada', 'Abhijat', 'Maggie',
               'Zulekha', 'Pat']
-    true_reward_tree = f_Ethan
+    true_reward_tree = f_Ethan  # Ground truth preference model
+    
+    # Define objects to be placed
     list_of_present_object_tuples = [obj_1, obj_2, obj_3]  # Define your object type tuple as per your requirements
+    
+    log.info(f"Loaded {len(hypothesis_reward_space)} preference models")
+    log.info(f"True preference model: {labels[hypothesis_reward_space.index(true_reward_tree)]}")
+    log.info(f"Objects to place: {len(list_of_present_object_tuples)}")
     render_game = Gridworld(f_Ethan, list_of_present_object_tuples)
     initial_state = Gridworld(f_Ethan, list_of_present_object_tuples).get_initial_state()
 
@@ -726,10 +767,15 @@ def run_interaction():
 
         hypothesis_reward_space[tree_i] = new_tree
 
-    # print("hypothesis_reward_space", hypothesis_reward_space)
+    # Initialize robot belief system
+    log.section("INITIALIZING ROBOT BELIEFS", color="magenta")
     robot_beliefs = initialize_robot_beliefs(hypothesis_reward_space)
-
+    
+    # Display belief distribution as a nicely formatted table
+    log.beliefs_table(robot_beliefs, labels, indent=1, title="Initial Belief Distribution:")
+    
     # Use enhanced visualization for robot beliefs
+    log.info("Generating belief visualization...", color="cyan")
     plot_robot_beliefs(robot_beliefs, labels, 'Initial Robot Beliefs', 
                       filename='initial_beliefs.png',
                       highlight_index=0)  # Assuming Ethan (index 0) is the true model
@@ -748,11 +794,12 @@ def run_interaction():
         )
         object_tuples.append(obj_tuple)
         
-    print(f"Processing objects in order: {object_tuples}")
+    log.info(f"Processing objects in order: {object_tuples}")
     
     # Main interaction loop
     for t in range(len(list_of_present_object_tuples)):
-        print("--- Initial state ---")
+        log.section(f"TIME STEP {t}: {COLORS_IDX.get(object_tuples[t][0], '').upper()} {OBJECTS_IDX.get(object_tuples[t][2], '').upper()}")
+        log.info("Initial state - awaiting robot action")
         render_game.render(state, t, "initial", object_tuples[t])
         
         # Robot takes action
@@ -760,11 +807,24 @@ def run_interaction():
                                                             list_of_present_object_tuples)
         
         if robot_action == EXIT:
-            print("Robot chose to exit - no more actions to take")
+            log.info("Robot chose to exit - no more actions to take", color="blue", bold=True)
             break
             
-        print("new_state", new_state)
-        print("--- Robot moved to new state ---")
+        log.debug(f"Current state: {new_state}", indent=2, color="gray")
+        log.subsection("Robot action completed")
+        object_desc = f"{COLORS_IDX.get(object_tuples[t][0], '')} {MATERIALS_IDX.get(object_tuples[t][1], '')} {OBJECTS_IDX.get(object_tuples[t][2], '')}"
+        # Get the quadrant from the new position
+        quadrant = "unknown"
+        pos = new_state[object_tuples[t]]['pos']
+        if pos[0] > 0 and pos[1] > 0:
+            quadrant = "Q1"
+        elif pos[0] < 0 and pos[1] > 0:
+            quadrant = "Q2"
+        elif pos[0] < 0 and pos[1] < 0:
+            quadrant = "Q3"
+        elif pos[0] > 0 and pos[1] < 0:
+            quadrant = "Q4"
+        log.info(f"Robot placed {object_desc} in quadrant {quadrant}")
         render_game.render(new_state, t, "robot_moved", object_tuples[t])
         
         # Prepare state for human correction
@@ -786,12 +846,24 @@ def run_interaction():
             new_state_reset_obj, t, robot_action, true_reward_tree, list_of_present_object_tuples)
 
         if human_correction == EXIT:
-            print("Human chose to exit - no more actions to take")
+            log.info("Human chose to exit - no more actions to take", color="red", bold=True)
             break
             
-        print("--- Human corrected to new state ---")
+        log.subsection("Human correction applied")
+        # Get the quadrant from the new corrected position
+        quadrant = "unknown"
+        pos = new_corrected_state[object_tuples[t]]['pos']
+        if pos[0] > 0 and pos[1] > 0:
+            quadrant = "Q1"
+        elif pos[0] < 0 and pos[1] > 0:
+            quadrant = "Q2"
+        elif pos[0] < 0 and pos[1] < 0:
+            quadrant = "Q3"
+        elif pos[0] > 0 and pos[1] < 0:
+            quadrant = "Q4"
+        log.info(f"Human placed {object_desc} in quadrant {quadrant}")
         render_game.render(new_corrected_state, t, "human_corrected", object_tuples[t])
-        print("updating beliefs")
+        log.info("Updating robot beliefs based on human feedback...")
 
         # Update robot beliefs based on the states
         s0_starting_state = copy.deepcopy(state)          # starting current state

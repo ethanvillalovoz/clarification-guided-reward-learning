@@ -17,7 +17,50 @@ Version 5 changes:
 """
 
 # Standard library imports
+import os
+import sys
+import time
 import copy
+from itertools import product
+
+# Third-party imports
+import numpy as np
+import matplotlib.pyplot as plt
+import networkx as nx
+
+# Local imports
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+try:
+    from src.utils.console import log
+except ImportError:
+    # Fallback if utils module is not available
+    class DummyLog:
+        @staticmethod
+        def section(msg): print(f"\n==== {msg} ====\n")
+        @staticmethod
+        def subsection(msg): print(f"\n-- {msg} --\n")
+        @staticmethod
+        def info(msg, indent=0): print("  " * indent + f"INFO: {msg}")
+        @staticmethod
+        def debug(msg, indent=0): print("  " * indent + f"DEBUG: {msg}")
+        @staticmethod
+        def warn(msg, indent=0): print("  " * indent + f"WARNING: {msg}")
+        @staticmethod
+        def error(msg, indent=0): print("  " * indent + f"ERROR: {msg}")
+        @staticmethod
+        def success(msg, indent=0): print("  " * indent + f"SUCCESS: {msg}")
+        @staticmethod
+        def result(label, value, indent=0): print("  " * indent + f"{label}: {value}")
+        @staticmethod
+        def progress(current, total, message="Processing", width=30):
+            percent = current / total
+            bar_filled = int(width * percent)
+            bar = f"[{'#' * bar_filled}{' ' * (width - bar_filled)}]"
+            sys.stdout.write(f"\r{message}: {bar} {int(percent * 100)}%")
+            if current == total:
+                sys.stdout.write("\n")
+            sys.stdout.flush()
+    log = DummyLog()
 import os
 from itertools import product
 
@@ -754,7 +797,7 @@ class Gridworld:
         tuple
             (transitions, rewards, state_to_idx, idx_to_action, idx_to_state, action_to_idx)
         """
-        print("Starting state enumeration...")
+        log.subsection("Starting state enumeration...")
         # Reset environment
         self.reset()
         actions = self.possible_single_actions
@@ -798,7 +841,7 @@ class Gridworld:
 
         # Build state and action indices
         states = list(G.nodes)
-        print(f"State enumeration complete: {len(states)} total states found")
+        log.info(f"State enumeration complete: {len(states)} total states found")
 
         idx_to_state = {i: state for i, state in enumerate(states)}
         state_to_idx = {state: i for i, state in idx_to_state.items()}
@@ -810,10 +853,10 @@ class Gridworld:
         transition_mat = np.zeros([len(states), len(states), len(actions)])
         reward_mat = np.zeros([len(states), len(actions)])
 
-        print("Building transition and reward matrices...")
+        log.info("Building transition and reward matrices...")
         for i in range(len(states)):
             if i % 100 == 0:
-                print(f"Processing state {i}/{len(states)}")
+                log.progress(i, len(states), "Processing state")
                 
             state = self.tuple_to_state(idx_to_state[i])
             
@@ -857,7 +900,7 @@ class Gridworld:
             - value_function: Array of optimal state values
             - policy: Array of optimal actions for each state
         """
-        print("Starting value iteration...")
+        log.subsection("Starting value iteration...")
         n_states = self.transitions.shape[0]
         n_actions = self.transitions.shape[2]
 
@@ -871,7 +914,7 @@ class Gridworld:
         for i in range(self.maxiter):
             # Print status periodically
             if i % 100 == 0:
-                print(f"Value iteration: iteration {i}/{self.maxiter}")
+                log.progress(i, self.maxiter, "Value iteration")
                 
             # Initialize convergence check
             delta = 0
@@ -889,7 +932,7 @@ class Gridworld:
                 
             # Check convergence
             if delta < self.epsilson:
-                print(f"Value iteration converged after {i} iterations")
+                log.success(f"Value iteration converged after {i} iterations")
                 break
                 
         # Extract optimal policy
@@ -1390,7 +1433,7 @@ class Gridworld:
         # Save figure with descriptive name and higher DPI for publication quality
         save_path = os.path.join(rollout_dir, f"time{timestep}_{state_type_short}{object_info_short}.png")
         plt.savefig(save_path, dpi=300, bbox_inches='tight', facecolor='white')
-        print(f"Saved state image to: {save_path}")
+        log.debug(f"Saved state image to: {save_path}")
 
         plt.tight_layout()
         plt.show()
@@ -1410,7 +1453,7 @@ class Gridworld:
         tuple
             (total_reward, game_results, sum_feature_value)
         """
-        print("Executing optimal policy rollout...")
+        log.subsection("Executing optimal policy rollout...")
         # Reset environment
         self.reset()
         done = False
@@ -1444,12 +1487,12 @@ class Gridworld:
             
             # Print status
             if render or iters % 5 == 0:
-                print(f"\n--- Step {iters} ---")
+                log.info(f"Step {iters}")
                 if isinstance(action, tuple):
                     obj_desc = f"Object: {action[0]}, Action: {action[1]}"
                 else:
                     obj_desc = f"Action: {action}"
-                print(f"Action taken: {obj_desc}")
+                log.info(f"Action taken: {obj_desc}", indent=1)
             
             # Calculate features and update state
             featurized_state = self.lookup_quadrant_reward(self.current_state)
@@ -1465,10 +1508,10 @@ class Gridworld:
             
             # Safety limit
             if iters > 40:
-                print("Maximum iterations reached, terminating rollout")
+                log.warn("Maximum iterations reached, terminating rollout")
                 break
                 
-        print(f"Rollout complete: {iters} steps, total reward: {total_reward:.2f}")
+        log.success(f"Rollout complete: {iters} steps, total reward: {total_reward:.2f}")
         return total_reward, game_results, sum_feature_value
 
     def compute_optimal_performance(self, render=False):
