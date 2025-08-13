@@ -753,7 +753,7 @@ def run_interaction():
     # Main interaction loop
     for t in range(len(list_of_present_object_tuples)):
         print("--- Initial state ---")
-        render_game.render(state, t)
+        render_game.render(state, t, "initial", object_tuples[t])
         
         # Robot takes action
         robot_action, new_state = get_weighted_robot_action(state, t, robot_beliefs, hypothesis_reward_space,
@@ -765,7 +765,7 @@ def run_interaction():
             
         print("new_state", new_state)
         print("--- Robot moved to new state ---")
-        render_game.render(new_state, t)
+        render_game.render(new_state, t, "robot_moved", object_tuples[t])
         
         # Prepare state for human correction
         # We need to preserve the current object's "done" status for visualization
@@ -790,7 +790,7 @@ def run_interaction():
             break
             
         print("--- Human corrected to new state ---")
-        render_game.render(new_corrected_state, t)
+        render_game.render(new_corrected_state, t, "human_corrected", object_tuples[t])
         print("updating beliefs")
 
         # Update robot beliefs based on the states

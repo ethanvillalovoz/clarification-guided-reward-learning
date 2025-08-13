@@ -903,7 +903,7 @@ class Gridworld:
         
         return vf, pi
 
-    def render(self, current_state, timestep):
+    def render(self, current_state, timestep, state_type="initial", object_moving=None):
         """
         Visualize the current state of the environment
         
@@ -913,6 +913,10 @@ class Gridworld:
             Current state dictionary
         timestep : int
             Current timestep
+        state_type : str
+            Type of state: "initial", "robot_moved", or "human_corrected"
+        object_moving : tuple
+            The object being moved (tuple representation)
         """
         import os
         import time
@@ -1010,19 +1014,47 @@ class Gridworld:
                    bbox=dict(facecolor='white', alpha=0.7, boxstyle='round,pad=0.3',
                             edgecolor='#999999', linewidth=0.5))
             
-        # Add visual indication of exit state
+        # Add visual indication of exit state and state type
+        plt.suptitle('Object Placement Environment', 
+                 fontsize=20, fontweight='bold', y=0.98, color='#333333')
+        
+        # Format the state type for display
+        state_type_display = ""
+        title_color = '#333333'
+        
         if current_state['exit']:
             # Add a subtle green background for final state
             plt.axvspan(self.x_min, self.x_max, self.y_min, self.y_max, color='green', alpha=0.05, zorder=-1)
-            plt.suptitle('Object Placement Environment', 
-                     fontsize=20, fontweight='bold', y=0.98, color='#333333')
-            plt.title(f"Final State (Time Step: {timestep})", 
-                    fontsize=16, pad=20, color='#007700', fontweight='bold')
+            state_type_display = "Final State"
+            title_color = '#007700'
+        elif state_type == "initial":
+            state_type_display = "--- Initial State ---"
+        elif state_type == "robot_moved":
+            state_type_display = "--- Robot Moved ---"
+            title_color = '#0066cc'  # Blue for robot actions
+        elif state_type == "human_corrected":
+            state_type_display = "--- Human Corrected ---"
+            title_color = '#cc5500'  # Orange for human corrections
         else:
-            plt.suptitle('Object Placement Environment', 
-                     fontsize=20, fontweight='bold', y=0.98, color='#333333')
-            plt.title(f"Current State (Time Step: {timestep})", 
-                    fontsize=16, pad=20, color='#333333')
+            state_type_display = "Current State"
+        
+        # Add information about which object is being moved
+        object_info = ""
+        if object_moving is not None:
+            # Get object properties for display
+            color_name = COLORS_IDX.get(object_moving[0], 'unknown')
+            object_name = OBJECTS_IDX.get(object_moving[2], 'unknown')
+            material_name = MATERIALS_IDX.get(object_moving[1], 'unknown')
+            object_info = f"Moving: {color_name.capitalize()} {material_name} {object_name}"
+        
+        # Create a title with proper layout and even spacing: main title at top, state type followed by object info
+        # Create separate titles with controlled spacing
+        ax.set_title(f"{state_type_display}", 
+                fontsize=16, color=title_color, fontweight='bold', pad=25)
+        
+        # Add subtitle with object info at consistent distance
+        plt.figtext(0.5, 0.91, f"{object_info} (Time Step: {timestep})", 
+                fontsize=14, color=title_color, ha='center')
             
         # Create detailed object status information
         status_text = []
