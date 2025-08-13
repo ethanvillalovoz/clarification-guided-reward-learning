@@ -103,7 +103,20 @@ def plot_robot_beliefs(beliefs, labels, title, filename=None, highlight_index=No
     
     # Save if filename is provided
     if filename:
-        plt.savefig(filename, dpi=300, bbox_inches='tight')
+        # Save in the source-code/beliefs/ directory
+        import os
+        # Get the source-code directory path
+        source_code_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        beliefs_dir = os.path.join(source_code_dir, 'beliefs')
+        
+        # Create directory if it doesn't exist
+        if not os.path.exists(beliefs_dir):
+            os.makedirs(beliefs_dir)
+            
+        # Save to the beliefs directory with the provided filename
+        save_path = os.path.join(beliefs_dir, filename)
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"Saved belief visualization to {save_path}")
         
     return fig, ax
 
@@ -718,6 +731,7 @@ def run_interaction():
 
     # Use enhanced visualization for robot beliefs
     plot_robot_beliefs(robot_beliefs, labels, 'Initial Robot Beliefs', 
+                      filename='initial_beliefs.png',
                       highlight_index=0)  # Assuming Ethan (index 0) is the true model
     plt.show()
 
@@ -792,8 +806,8 @@ def run_interaction():
         # state[] = new_corrected_state
         # Enhanced visualization prior to clarification question
         plot_robot_beliefs(robot_beliefs, labels, 
-                          f'Robot Beliefs (prior to clarification, timestep {t+1})', 
-                          filename=f'beliefs_prior_clarification_t{t+1}.png',
+                          f'Robot Beliefs (prior to clarification, timestep {t})', 
+                          filename=f'beliefs_prior_clarification_t{t}.png',
                           highlight_index=0)  # Assuming Ethan (index 0) is the true model
         plt.show()
 
@@ -807,8 +821,8 @@ def run_interaction():
 
         # Enhanced visualization for after clarification
         plot_robot_beliefs(robot_beliefs, labels, 
-                          f'Robot Beliefs (after clarification, timestep {t+1})', 
-                          filename=f'beliefs_after_clarification_t{t+1}.png',
+                          f'Robot Beliefs (after clarification, timestep {t})', 
+                          filename=f'beliefs_after_clarification_t{t}.png',
                           highlight_index=0)  # Assuming Ethan (index 0) is the true model
         plt.show()
 
