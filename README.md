@@ -143,6 +143,51 @@ Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) if avai
 
 ---
 
+## 🔍 Future Work & Development Ideas
+
+- Enhance the generation of clarification questions using advanced large language models (LLMs).
+- Conduct user studies to validate findings in real-world scenarios.
+- Apply the methodology to other domains requiring close human-robot collaboration.
+
+**Future Development Ideas:**
+
+1. **Enhanced Question Generation**
+	- Generate questions dynamically based on the robot's uncertainty
+	- Prioritize questions that maximize information gain
+	- Use natural language generation for more natural dialogue
+
+2. **Improved Belief Updates**
+	- Implement more sophisticated Bayesian update mechanisms
+	- Add confidence-weighted updates based on human certainty
+	- Handle noisy or inconsistent human feedback
+
+3. **Natural Language Integration**
+	- Allow open-ended natural language responses
+	- Use semantic parsing to extract relevant information
+	- Build a knowledge graph of preferences over time
+
+4. **Active Learning Strategies**
+	- Implement information-theoretic query selection
+	- Balance exploration vs. exploitation in question asking
+	- Design questions to disambiguate between competing hypotheses
+
+5. **User Experience Improvements**
+	- Add visualization of belief evolution over time
+	- Provide explanations for robot's decisions
+	- Allow reviewing and revising past interactions
+
+---
+
+## 👏 Acknowledgments
+
+This work was conducted as part of the **CMU Robotics Institute Summer Scholars (RISS) Program 2024**. I would like to thank:
+
+- **Dr. Henny Admoni** and **Dr. Reid Simmons** for their guidance and support.
+- **Michelle Zhao** for her invaluable mentorship.
+- **Rachel Burcin** and **Dr. John Dolan** for leading the RISS Program and providing this incredible opportunity.
+
+---
+
 ## 📝 License
 
 This project is licensed under the [MIT License](LICENSE).
