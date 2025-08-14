@@ -69,6 +69,8 @@ Key features:
 	 ```
 2. Install dependencies:
 	 ```bash
+     conda create -n CMU python=3.8
+     conda activate CMU
 	 pip install -r requirements.txt
 	 ```
 3. Run the main experiment:
