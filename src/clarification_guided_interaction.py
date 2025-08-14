@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Local imports
-from multi_object_custom_mdp_v5 import (
+from multi_object_mdp import (
     Gridworld, COLORS, COLORS_IDX, MATERIALS, MATERIALS_IDX, OBJECTS, OBJECTS_IDX,
     f_Ethan, f_Michelle, f_Annika, f_Admoni, f_Simmons, f_Suresh, f_Ben, f_Ada,
     f_Abhijat, f_Maggie, f_Zulekha, f_Pat, obj_1, obj_2, obj_3, EXIT
@@ -34,7 +34,7 @@ try:
     from utils.console import log
 except ImportError:
     # If utils module not found, use the logger from multi_object_custom_mdp_v5
-    from multi_object_custom_mdp_v5 import log
+    from multi_object_mdp import log
 
 # Type aliases for better code readability
 State = Dict[Tuple, Dict[str, Any]]
@@ -57,7 +57,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 # Local imports
-from multi_object_custom_mdp_v5 import *
+from multi_object_mdp import *
 try:
     from utils.console import log
 except ImportError:

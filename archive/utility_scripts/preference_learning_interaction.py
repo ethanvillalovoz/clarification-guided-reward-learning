@@ -12,7 +12,7 @@ Project: RISS 2024 Summer Project - Clarification-Guided Reward Learning
 import numpy as np
 import matplotlib.pyplot as plt
 import copy
-from multi_object_custom_mdp_v5 import (
+from multi_object_mdp import (
     Gridworld, f_Ethan, f_Michelle, f_Annika, f_Admoni, 
     f_Simmons, f_Suresh, f_Ben, f_Ada, f_Abhijat,
     f_Maggie, f_Zulekha, f_Pat, obj_1, obj_2
