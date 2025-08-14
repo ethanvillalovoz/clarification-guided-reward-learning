@@ -377,7 +377,7 @@ def get_weighted_robot_action(state: State,
                             best_quadrant = q
         except (KeyError, TypeError):
             # If there's any error navigating the tree, use default
-            log.warning(f"Could not find exact preference for {color} {material} {object_type}, using default")
+            log.warn(f"Could not find exact preference for {color} {material} {object_type}, using default")
         
         action_quadrant = best_quadrant
         log.info(f"Robot chose {action_quadrant} based on preferences", indent=2)
@@ -581,7 +581,7 @@ def get_correction_from_human(new_state: State,
                         best_quadrant = q
     except (KeyError, TypeError):
         # If there's any error navigating the tree, use default
-        log.warning(f"Could not find exact preference for {color} {material} {object_type}, using default")
+        log.warn(f"Could not find exact preference for {color} {material} {object_type}, using default")
     
     action_quadrant = best_quadrant
     log.info(f"Human chose {action_quadrant} based on true preferences", indent=2)
