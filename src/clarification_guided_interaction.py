@@ -14,8 +14,6 @@ Version: 1.0.0
 # Standard library imports
 import os
 import copy
-import sys
-from pathlib import Path
 from typing import List, Dict, Tuple, Any, Optional, Union
 
 # Third-party imports
@@ -42,27 +40,6 @@ ObjectTuple = Tuple[int, int, int, int]  # (color_idx, material_idx, object_idx,
 ObjectConfig = Dict[str, Union[str, int]]
 PreferenceTree = Dict[str, Any]
 Beliefs = np.ndarray
-
-# Standard library imports
-import os
-import sys
-import copy
-import pdb
-from pathlib import Path
-
-# Third-party imports
-import numpy as np
-import seaborn as sns
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-
-# Local imports
-from multi_object_mdp import *
-try:
-    from utils.console import log
-except ImportError:
-    # If utils module not found, use the logger from multi_object_custom_mdp_v5
-    pass
 
 # ============================
 # Visualization Functions
@@ -1230,32 +1207,3 @@ if __name__ == '__main__':
         log.debug(traceback.format_exc())
     finally:
         log.section("SESSION ENDED", color="blue", bold=True)
-
-"""
-Future Development Ideas:
-
-1. Enhanced Question Generation
-   - Generate questions dynamically based on the robot's uncertainty
-   - Prioritize questions that maximize information gain
-   - Use natural language generation for more natural dialogue
-
-2. Improved Belief Updates
-   - Implement more sophisticated Bayesian update mechanisms
-   - Add confidence-weighted updates based on human certainty
-   - Handle noisy or inconsistent human feedback
-
-3. Natural Language Integration
-   - Allow open-ended natural language responses
-   - Use semantic parsing to extract relevant information
-   - Build a knowledge graph of preferences over time
-
-4. Active Learning Strategies
-   - Implement information-theoretic query selection
-   - Balance exploration vs. exploitation in question asking
-   - Design questions to disambiguate between competing hypotheses
-
-5. User Experience Improvements
-   - Add visualization of belief evolution over time
-   - Provide explanations for robot's decisions
-   - Allow reviewing and revising past interactions
-"""

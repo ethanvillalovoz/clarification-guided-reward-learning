@@ -1,5 +1,4 @@
-numpy
-networkx
 matplotlib
-seaborn
+networkx
 numpy
+seaborn

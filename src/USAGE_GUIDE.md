@@ -43,6 +43,15 @@ This document explains the purpose and usage of each file in the `src/` director
    - Add new preference models or object types in `multi_object_mdp.py`.
    - Improve logging or output formatting in `utils/console.py`.
 
+## Verification
+
+Run these checks before changing the experiment loop:
+
+```bash
+python -m py_compile src/clarification_guided_interaction.py src/multi_object_mdp.py src/utils/console.py
+python -m unittest discover tests
+```
+
 ---
 
 ## Adding New Features
@@ -55,8 +64,3 @@ This document explains the purpose and usage of each file in the `src/` director
 ## Troubleshooting
 - If you encounter import errors, ensure you are running scripts from the project root and that your Python path includes the `src/` directory.
 - For missing dependencies, install required packages listed in `requirements.txt`.
-
----
-
-## Contact
-For questions or contributions, please contact the project maintainers listed in the `README.md`.

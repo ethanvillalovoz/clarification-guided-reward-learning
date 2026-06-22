@@ -1,203 +1,127 @@
-# Clarifying Feature Overspecification in Reward Learning from State Corrections via Follow Up Questions
+# Clarification-Guided Reward Learning
 
-<!-- Badges -->
-![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Python](https://img.shields.io/badge/python-3.8%2B-blue)
-![Build](https://img.shields.io/badge/build-passing-brightgreen)
+[![CI](https://github.com/ethanvillalovoz/clarification-guided-reward-learning/actions/workflows/ci.yml/badge.svg)](https://github.com/ethanvillalovoz/clarification-guided-reward-learning/actions/workflows/ci.yml)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
----
+Research prototype for studying how robots can infer human preferences from state corrections and follow-up clarification questions.
 
-## 🚀 Introduction
+This project was developed during the 2024 CMU Robotics Institute Summer Scholars (RISS) program. It models a multi-object placement task where a robot places cups and bowls into quadrants, receives human state corrections, updates a Bayesian belief distribution over candidate preference trees, and asks feature-level clarification questions to resolve overspecified or ambiguous feedback.
 
-Clarification-Guided Reward Learning is a research project from the 2024 CMU RISS program focused on enabling robots to learn user preferences through interactive corrections and clarification questions. The goal is to make robots more adaptive and aligned with human intent in collaborative tasks.
+## What This Demonstrates
 
----
+- A simulated Markov Decision Process for multi-object placement.
+- Hierarchical preference trees over object type, color, material, and quadrant.
+- Bayesian belief updates from robot actions, human corrections, and feature clarification responses.
+- Research visualizations for belief evolution and object-placement rollouts.
+- Linked paper, poster, presentation, and demo-video artifacts for reproducibility context.
 
-## 📖 Description
-
-This project explores how robots can learn reward functions from human state corrections, using proactive dialogue to resolve ambiguity. The system uses Bayesian inference to update beliefs about user preferences and features a modular, extensible codebase for experimentation.
-
-Key features:
-- Interactive human-robot collaboration with state corrections
-- Clarification questions to resolve feature ambiguity
-- Probabilistic (Bayesian) belief updates
-- Modular MDP and preference model framework
-
----
-
-## 🖼️ Visuals
+## Visual Overview
 
 <p align="center">
-	<img src="data/images/Initial_Beliefs.png" alt="Initial Robot Beliefs" width="400"/>
-	<br>
-	<em>Example: Initial robot belief distribution over preference models</em>
+  <img src="data/images/Initial_Beliefs.png" alt="Initial robot belief distribution" width="420"/>
+  <br/>
+  <em>Initial belief distribution over candidate preference models.</em>
 </p>
 
 <p align="center">
-	<img src="data/images/Human_Correction.png" alt="Rollout Example" width="400"/>
-	<br>
-	<em>Example: State visualization from a rollout</em>
+  <img src="data/images/Human_Correction.png" alt="Human correction rollout visualization" width="420"/>
+  <br/>
+  <em>Example state visualization after a human correction in the placement task.</em>
 </p>
 
----
+## Research Artifacts
 
-## 📦 Prerequisites / Requirements
+- [Working paper](docs/paper/working-paper.pdf)
+- [Research poster](docs/poster/research-poster.pdf)
+- [Final presentation](docs/presentation/final-presentation.pdf)
+- [Presentation video](docs/video/presentation-video.mp4)
+- [Artifact notes](docs/research-artifacts.md)
 
-- Python 3.8+
-- Recommended: virtualenv or conda
-- Install dependencies:
-	```bash
-	pip install -r requirements.txt
-	```
+## Repository Structure
 
----
-
-## 🛠️ Technologies Used
-
-- Python 3.8+
-- numpy, matplotlib, seaborn, networkx
-- Custom logging utilities (see `src/utils/console.py`)
-
----
-
-## ⚡ QuickStart Guide
-
-1. Clone the repository:
-	 ```bash
-	 git clone https://github.com/ethanvillalovoz/clarification-guided-reward-learning.git
-	 cd clarification-guided-reward-learning
-	 ```
-2. Install dependencies:
-	 ```bash
-     conda create -n CMU python=3.8
-     conda activate CMU
-	 pip install -r requirements.txt
-	 ```
-3. Run the main experiment:
-	 ```bash
-	 python src/clarification_guided_interaction.py
-	 ```
-4. View belief visualizations in the `beliefs/` folder.
-
----
-
-## 🔬 Advanced Usage
-
-- Modify `src/clarification_guided_interaction.py` to change the experiment setup, objects, or interaction protocol.
-- Add new preference models or object types in `src/multi_object_mdp.py`.
-- Use or extend utility scripts in `archive/utility_scripts/` for data processing or visualization.
-
----
-
-## ⚙️ Configuration
-
-- All main configuration is done in `src/clarification_guided_interaction.py` and `src/multi_object_mdp.py`.
-- For advanced customization, see the comments in each file and the [USAGE_GUIDE.md](src/USAGE_GUIDE.md).
-
----
-
-## ✅ Automated Test
-
-*Basic test functions are included in `src/multi_object_mdp.py`.*
-
-To run tests (if implemented):
-```bash
-python -m unittest discover src/
-```
-
----
-
-## 🗂️ Directory Structure
-
-```
+```text
 clarification-guided-reward-learning/
-├── archive/           # Legacy code, rollouts, and utility scripts
-├── beliefs/           # Belief visualization images
-├── data/              # Object images and data
-├── docs/              # Documentation (paper, poster, presentation, video)
-├── rollouts/          # Rollout images from experiments
-├── src/               # Main source code
-│   ├── clarification_guided_interaction.py
-│   ├── multi_object_mdp.py
-│   ├── USAGE_GUIDE.md
-│   └── utils/
-│       └── console.py
-├── requirements.txt   # Python dependencies
-├── LICENSE            # MIT License
-└── README.md          # This file
+|-- archive/                 # Earlier prototypes, utility scripts, and historical rollouts
+|-- beliefs/                 # Saved belief-distribution visualizations
+|-- data/                    # Object and documentation images
+|-- docs/                    # Paper, poster, presentation, and video artifacts
+|-- rollouts/                # Saved rollout images from representative experiments
+|-- src/
+|   |-- clarification_guided_interaction.py
+|   |-- multi_object_mdp.py
+|   |-- USAGE_GUIDE.md
+|   `-- utils/
+|-- tests/                   # Lightweight regression tests for core simulation behavior
+|-- requirements.txt
+`-- README.md
 ```
 
----
+## Quick Start
 
-## 🛣️ Roadmap
+This repo targets Python 3.8+.
 
-- [ ] Enhanced question generation using LLMs
-- [ ] User studies for real-world validation
-- [ ] More advanced belief update mechanisms
-- [ ] Integration with physical robots
-- [ ] Improved visualization and user interface
+```bash
+git clone https://github.com/ethanvillalovoz/clarification-guided-reward-learning.git
+cd clarification-guided-reward-learning
 
----
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
 
-## 🤝 Contribution
+Run the main research demo:
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) if available, or open an issue or pull request. For major changes, please discuss them first.
+```bash
+python src/clarification_guided_interaction.py
+```
 
----
+The demo runs the clarification-guided interaction loop, displays matplotlib visualizations, and writes belief plots to `beliefs/`.
 
-## 🔍 Future Work & Development Ideas
+## Verification
 
-- Enhance the generation of clarification questions using advanced large language models (LLMs).
-- Conduct user studies to validate findings in real-world scenarios.
-- Apply the methodology to other domains requiring close human-robot collaboration.
+Run the lightweight local checks:
 
-**Future Development Ideas:**
+```bash
+python -m py_compile src/clarification_guided_interaction.py src/multi_object_mdp.py src/utils/console.py
+python -m unittest discover tests
+```
 
-1. **Enhanced Question Generation**
-	- Generate questions dynamically based on the robot's uncertainty
-	- Prioritize questions that maximize information gain
-	- Use natural language generation for more natural dialogue
+Optional Docker check using the declared Python runtime:
 
-2. **Improved Belief Updates**
-	- Implement more sophisticated Bayesian update mechanisms
-	- Add confidence-weighted updates based on human certainty
-	- Handle noisy or inconsistent human feedback
+```bash
+docker run --rm -v "$PWD":/workspace -w /workspace python:3.8-slim sh -lc \
+  "python -m pip install --upgrade pip && \
+   pip install -r requirements.txt && \
+   python -m py_compile src/clarification_guided_interaction.py src/multi_object_mdp.py src/utils/console.py && \
+   python -m unittest discover tests"
+```
 
-3. **Natural Language Integration**
-	- Allow open-ended natural language responses
-	- Use semantic parsing to extract relevant information
-	- Build a knowledge graph of preferences over time
+## Core Files
 
-4. **Active Learning Strategies**
-	- Implement information-theoretic query selection
-	- Balance exploration vs. exploitation in question asking
-	- Design questions to disambiguate between competing hypotheses
+- `src/clarification_guided_interaction.py` is the main experiment loop for robot actions, human corrections, Bayesian belief updates, clarification questions, and belief visualization.
+- `src/multi_object_mdp.py` defines the Gridworld environment, object metadata, preference trees, reward lookup, transitions, value iteration, and rollout rendering.
+- `src/utils/console.py` provides structured terminal output for research demos and debugging.
+- `src/USAGE_GUIDE.md` explains how the source files fit together and where to modify experiment settings.
 
-5. **User Experience Improvements**
-	- Add visualization of belief evolution over time
-	- Provide explanations for robot's decisions
-	- Allow reviewing and revising past interactions
+## Extending The Project
 
----
+Useful extension points include:
 
-## 👏 Acknowledgments
+- Add or modify preference trees in `src/multi_object_mdp.py`.
+- Change the object set or true preference model in `run_interaction()`.
+- Replace the scripted clarification step with a natural-language or information-gain-based question policy.
+- Add tests for new reward, belief-update, or rendering behavior before changing the interaction loop.
 
-This work was conducted as part of the **CMU Robotics Institute Summer Scholars (RISS) Program 2024**. I would like to thank:
+## Status And Limitations
 
-- **Dr. Henny Admoni** and **Dr. Reid Simmons** for their guidance and support.
-- **Michelle Zhao** for her invaluable mentorship.
-- **Rachel Burcin** and **Dr. John Dolan** for leading the RISS Program and providing this incredible opportunity.
+This is a research prototype, not a packaged robotics library. The current implementation focuses on a simulated object-placement environment and an interactive visual demo. The `archive/` directory keeps earlier prototypes and utility scripts for historical context; it is not required for the main run path.
 
----
+## Acknowledgments
 
-## 📝 License
+This work was conducted as part of the CMU Robotics Institute Summer Scholars (RISS) Program 2024. Special thanks to Dr. Henny Admoni, Dr. Reid Simmons, Michelle Zhao, Rachel Burcin, and Dr. John Dolan for mentorship and program support.
 
-This project is licensed under the [MIT License](LICENSE).
+## License
 
----
-
-## 💬 Contact
-
-For questions or collaborations:
-- **Email:** ethan.villalovoz@gmail.com
-- **GitHub:** [ethanvillalovoz](https://github.com/ethanvillalovoz)
+This project is released under the [MIT License](LICENSE).

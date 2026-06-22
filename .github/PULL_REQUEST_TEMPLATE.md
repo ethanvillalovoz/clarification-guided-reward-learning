@@ -1,10 +1,10 @@
 # Pull Request
 
-Thank you for your contribution! Please fill out the following checklist and provide details about your changes.
+Thank you for contributing. Please keep changes focused and explain how they affect the research prototype.
 
 ## Description
 
-<!-- Please include a summary of the change and which issue is fixed. Also include relevant motivation and context. -->
+<!-- Summarize the change and include relevant motivation/context. -->
 
 Fixes #(issue)
 
@@ -12,16 +12,19 @@ Fixes #(issue)
 - [ ] Bug fix
 - [ ] New feature
 - [ ] Documentation update
+- [ ] Test or CI update
 - [ ] Other (please describe):
 
+## Research behavior
+
+<!-- Describe the reward-learning, belief-update, visualization, or experiment behavior this change should preserve or modify. -->
+
 ## Checklist
-- [ ] My code follows the project style guidelines
-- [ ] I have performed a self-review of my code
-- [ ] I have commented my code, particularly in hard-to-understand areas
-- [ ] I have made corresponding changes to the documentation (if relevant)
-- [ ] My changes generate no new warnings
-- [ ] I have added tests that prove my fix is effective or that my feature works (if applicable)
-- [ ] New and existing tests pass locally with my changes
+- [ ] I ran `python -m py_compile src/clarification_guided_interaction.py src/multi_object_mdp.py src/utils/console.py`
+- [ ] I ran `python -m unittest discover tests`
+- [ ] I updated documentation when setup, usage, or artifact behavior changed
+- [ ] I included screenshots or generated plots for visualization changes
+- [ ] I avoided committing generated caches, virtual environments, or OS metadata
 
 ## Additional context
 
