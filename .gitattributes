@@ -5,7 +5,9 @@
 *.yaml text eol=lf
 
 *.jpeg binary
+*.gif binary
 *.jpg binary
+*.json text eol=lf
 *.mp4 binary
 *.pdf binary
 *.png binary

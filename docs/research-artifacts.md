@@ -1,14 +1,12 @@
 # Research Artifacts
 
-This directory stores the supporting materials for the CMU RISS 2024 research prototype.
+These files preserve the 2024 RISS project context. They are historical artifacts, not regenerated outputs from the refactored version 1.1 package.
 
-## Files
+| Artifact | Purpose | Evidence status |
+| --- | --- | --- |
+| [`paper/working-paper.pdf`](paper/working-paper.pdf) | Proposed method, related work, and planned evaluation | Working paper; states that participant results were not yet available |
+| [`poster/research-poster.pdf`](poster/research-poster.pdf) | Program poster | Project summary |
+| [`presentation/final-presentation.pdf`](presentation/final-presentation.pdf) | Final RISS slides | Project presentation |
+| [`video/presentation-video.mp4`](video/presentation-video.mp4) | Recorded talk and prototype walkthrough | Demonstration artifact |
 
-- `paper/working-paper.pdf`: Working paper describing the clarification-guided reward-learning setup and motivation.
-- `poster/research-poster.pdf`: Poster summary of the research question, method, and experiment framing.
-- `presentation/final-presentation.pdf`: Final presentation slides from the RISS project.
-- `video/presentation-video.mp4`: Recorded presentation/demo artifact.
-
-## How To Use These Artifacts
-
-Use the artifacts to understand the research context behind the code. The source files in `src/` are the executable prototype; the documents in `docs/` are preserved as project evidence and explanatory material.
+The executable reference simulation is documented separately in [Reproducibility](reproducibility.md). The original source and prototype chronology are preserved by the repository's `v1.0.0` tag.

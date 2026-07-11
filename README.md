@@ -1,127 +1,125 @@
 # Clarification-Guided Reward Learning
 
 [![CI](https://github.com/ethanvillalovoz/clarification-guided-reward-learning/actions/workflows/ci.yml/badge.svg)](https://github.com/ethanvillalovoz/clarification-guided-reward-learning/actions/workflows/ci.yml)
-[![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.11%2B-222222.svg)](https://www.python.org/)
+[![License](https://img.shields.io/badge/license-MIT-222222.svg)](LICENSE)
 
-Research prototype for studying how robots can infer human preferences from state corrections and follow-up clarification questions.
+A compact reference simulation for studying whether feature-level follow-up questions can disambiguate reward hypotheses after a human corrects a robot's state.
 
-This project was developed during the 2024 CMU Robotics Institute Summer Scholars (RISS) program. It models a multi-object placement task where a robot places cups and bowls into quadrants, receives human state corrections, updates a Bayesian belief distribution over candidate preference trees, and asks feature-level clarification questions to resolve overspecified or ambiguous feedback.
+![Belief updates in the illustrative simulation](docs/media/belief-update.gif)
 
-## What This Demonstrates
+## Research Status
 
-- A simulated Markov Decision Process for multi-object placement.
-- Hierarchical preference trees over object type, color, material, and quadrant.
-- Bayesian belief updates from robot actions, human corrections, and feature clarification responses.
-- Research visualizations for belief evolution and object-placement rollouts.
-- Linked paper, poster, presentation, and demo-video artifacts for reproducibility context.
+This is a simulation prototype from the 2024 Carnegie Mellon Robotics Institute Summer Scholars program. The accompanying working paper explicitly reports that no user-study results were available at the time of writing. The repository therefore makes a narrow claim: it implements and tests the proposed inference mechanism in a fixed toy hypothesis space.
 
-## Visual Overview
+It does **not** establish that clarification improves real-robot performance, task completion time, user satisfaction, or generalization.
 
-<p align="center">
-  <img src="data/images/Initial_Beliefs.png" alt="Initial robot belief distribution" width="420"/>
-  <br/>
-  <em>Initial belief distribution over candidate preference models.</em>
-</p>
+## Research Question
 
-<p align="center">
-  <img src="data/images/Human_Correction.png" alt="Human correction rollout visualization" width="420"/>
-  <br/>
-  <em>Example state visualization after a human correction in the placement task.</em>
-</p>
+A state correction can be overspecified. If a person moves a red glass cup from one dishwasher quadrant to another, the robot observes the preferred state but not the reason: color, material, object type, or a conjunction of features.
+
+This reference implementation compares two conditions on the same deterministic sequence:
+
+1. **Correction only:** update reward-hypothesis beliefs from the corrected state.
+2. **Correction + clarification:** apply the same correction update, then ask which object features motivated the correction when posterior entropy remains high.
+
+## Method
+
+For a human-corrected state `S_h`, robot state `S_r`, reward hypothesis `theta`, and rationality parameter `beta`, the correction likelihood uses a Bradley-Terry model:
+
+```text
+P(S_h > S_r | theta) = exp(beta R_theta(S_h))
+                         -----------------------------------------
+                         exp(beta R_theta(S_h)) + exp(beta R_theta(S_r))
+```
+
+The posterior is the normalized product of prior and likelihood. A feature answer uses the paper's illustrative noise model: likelihood `0.8` for an exact feature-structure match and `0.2` otherwise. Clarification is gated by normalized entropy rather than asked unconditionally.
+
+The code keeps each assumption explicit in [`inference.py`](src/clarification_reward_learning/inference.py) and [`simulation.py`](src/clarification_reward_learning/simulation.py).
+
+## Illustrative Output
+
+![Correction-only and clarification simulation comparison](docs/media/illustrative-comparison.png)
+
+With the default six hand-authored hypotheses, three objects, `beta=2.0`, and clarification likelihood `0.8`:
+
+| Condition | Final posterior on designated true hypothesis | Final normalized entropy |
+| --- | ---: | ---: |
+| Correction only | 0.7009 | 0.5701 |
+| Correction + clarification | 0.9036 | 0.2510 |
+
+These values are a deterministic code-path check, not an empirical result. Change the hypothesis space, feature noise, threshold, objects, or true model and the trace changes.
+
+## Reproduce It
+
+```bash
+git clone https://github.com/ethanvillalovoz/clarification-guided-reward-learning.git
+cd clarification-guided-reward-learning
+
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+
+clarification-reward-demo --output-dir artifacts/latest
+```
+
+The command writes:
+
+- `trace.json`: complete priors, likelihood-driven posteriors, actions, answers, and entropy.
+- `comparison.png`: correction-only versus clarification trajectories.
+- `belief-update.gif`: stage-by-stage belief animation.
+
+A committed [reference trace](examples/reference-trace.json) makes the default configuration inspectable without running Python.
+
+## Verification
+
+```bash
+ruff check src tests
+pytest -q
+MPLBACKEND=Agg clarification-reward-demo --output-dir artifacts/check
+```
+
+Tests cover normalization, numerical stability, Bradley-Terry directionality, correction updates, feature clarification, entropy reduction, deterministic replay, and invalid configurations.
+
+## Package Layout
+
+```text
+src/clarification_reward_learning/
+  models.py          objects, reward hypotheses, and default toy problem
+  inference.py       likelihoods, Bayesian updates, entropy, and action selection
+  simulation.py      correction-only and clarification experiment traces
+  visualization.py   static comparison and animated belief artifacts
+  cli.py             reproducible command-line entry point
+tests/               focused inference and simulation regression tests
+examples/            committed default trace
+docs/                RISS paper, poster, slides, video, and method notes
+```
 
 ## Research Artifacts
 
 - [Working paper](docs/paper/working-paper.pdf)
 - [Research poster](docs/poster/research-poster.pdf)
 - [Final presentation](docs/presentation/final-presentation.pdf)
-- [Presentation video](docs/video/presentation-video.mp4)
-- [Artifact notes](docs/research-artifacts.md)
+- [Recorded presentation](docs/video/presentation-video.mp4)
+- [Method and reproducibility notes](docs/reproducibility.md)
 
-## Repository Structure
+The original presentation-oriented implementation and prototype history remain available in the [`v1.0.0` tag](https://github.com/ethanvillalovoz/clarification-guided-reward-learning/tree/v1.0.0). Version 1.1 replaces that path with a smaller, testable reference implementation; it does not rewrite the historical paper.
 
-```text
-clarification-guided-reward-learning/
-|-- archive/                 # Earlier prototypes, utility scripts, and historical rollouts
-|-- beliefs/                 # Saved belief-distribution visualizations
-|-- data/                    # Object and documentation images
-|-- docs/                    # Paper, poster, presentation, and video artifacts
-|-- rollouts/                # Saved rollout images from representative experiments
-|-- src/
-|   |-- clarification_guided_interaction.py
-|   |-- multi_object_mdp.py
-|   |-- USAGE_GUIDE.md
-|   `-- utils/
-|-- tests/                   # Lightweight regression tests for core simulation behavior
-|-- requirements.txt
-`-- README.md
-```
+## Limitations
 
-## Quick Start
+- Fixed discrete hypothesis space and three synthetic objects.
+- Hand-authored rewards, clarification accuracy, and entropy threshold.
+- No participant study, real robot, language understanding, or learned question policy.
+- No robustness analysis for misspecified or incomplete hypothesis spaces.
+- The expected-reward action policy is deterministic and omits dynamics beyond quadrant placement.
+- The committed comparison is descriptive for one configuration and has no statistical uncertainty.
 
-This repo targets Python 3.8+.
-
-```bash
-git clone https://github.com/ethanvillalovoz/clarification-guided-reward-learning.git
-cd clarification-guided-reward-learning
-
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-```
-
-Run the main research demo:
-
-```bash
-python src/clarification_guided_interaction.py
-```
-
-The demo runs the clarification-guided interaction loop, displays matplotlib visualizations, and writes belief plots to `beliefs/`.
-
-## Verification
-
-Run the lightweight local checks:
-
-```bash
-python -m py_compile src/clarification_guided_interaction.py src/multi_object_mdp.py src/utils/console.py
-python -m unittest discover tests
-```
-
-Optional Docker check using the declared Python runtime:
-
-```bash
-docker run --rm -v "$PWD":/workspace -w /workspace python:3.8-slim sh -lc \
-  "python -m pip install --upgrade pip && \
-   pip install -r requirements.txt && \
-   python -m py_compile src/clarification_guided_interaction.py src/multi_object_mdp.py src/utils/console.py && \
-   python -m unittest discover tests"
-```
-
-## Core Files
-
-- `src/clarification_guided_interaction.py` is the main experiment loop for robot actions, human corrections, Bayesian belief updates, clarification questions, and belief visualization.
-- `src/multi_object_mdp.py` defines the Gridworld environment, object metadata, preference trees, reward lookup, transitions, value iteration, and rollout rendering.
-- `src/utils/console.py` provides structured terminal output for research demos and debugging.
-- `src/USAGE_GUIDE.md` explains how the source files fit together and where to modify experiment settings.
-
-## Extending The Project
-
-Useful extension points include:
-
-- Add or modify preference trees in `src/multi_object_mdp.py`.
-- Change the object set or true preference model in `run_interaction()`.
-- Replace the scripted clarification step with a natural-language or information-gain-based question policy.
-- Add tests for new reward, belief-update, or rendering behavior before changing the interaction loop.
-
-## Status And Limitations
-
-This is a research prototype, not a packaged robotics library. The current implementation focuses on a simulated object-placement environment and an interactive visual demo. The `archive/` directory keeps earlier prototypes and utility scripts for historical context; it is not required for the main run path.
+These limitations are the next research work, not hidden implementation details.
 
 ## Acknowledgments
 
-This work was conducted as part of the CMU Robotics Institute Summer Scholars (RISS) Program 2024. Special thanks to Dr. Henny Admoni, Dr. Reid Simmons, Michelle Zhao, Rachel Burcin, and Dr. John Dolan for mentorship and program support.
+Developed during CMU RISS 2024 with Michelle Zhao and mentorship from Dr. Henny Admoni and Dr. Reid Simmons. Thanks to Rachel Burcin and Dr. John Dolan for leading the RISS program.
 
 ## License
 
-This project is released under the [MIT License](LICENSE).
+Released under the [MIT License](LICENSE).

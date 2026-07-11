@@ -3,32 +3,50 @@ name: CI
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
-  test:
+  verify:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.13"]
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.8'
+          python-version: ${{ matrix.python-version }}
+          cache: pip
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+      - name: Install package
+        run: pip install -e ".[dev]"
 
-      - name: Compile source files
-        run: |
-          python -m py_compile src/clarification_guided_interaction.py src/multi_object_mdp.py src/utils/console.py
+      - name: Lint
+        run: ruff check src tests
 
-      - name: Run unit tests
+      - name: Test
+        run: pytest -q
+
+      - name: Generate deterministic artifacts
+        env:
+          MPLBACKEND: Agg
+          MPLCONFIGDIR: /tmp/matplotlib
+        run: clarification-reward-demo --output-dir artifacts/ci
+
+      - name: Verify artifact contract
         run: |
-          python -m unittest discover tests
+          test -s artifacts/ci/trace.json
+          test -s artifacts/ci/comparison.png
+          test -s artifacts/ci/belief-update.gif
+
+      - name: Upload reference artifacts
+        if: matrix.python-version == '3.11'
+        uses: actions/upload-artifact@v4
+        with:
+          name: clarification-reward-learning-trace
+          path: artifacts/ci/

@@ -1,0 +1,267 @@
+{
+  "correction_only": {
+    "condition": "correction only",
+    "hypothesis_names": [
+      "color",
+      "material",
+      "object type",
+      "color + object type",
+      "material + object type",
+      "color + material"
+    ],
+    "true_hypothesis_index": 3,
+    "beta": 2.0,
+    "clarification_accuracy": 0.8,
+    "clarification_threshold": 0.55,
+    "steps": [
+      {
+        "timestep": 0,
+        "object_label": "yellow glass cup",
+        "robot_action": "Q1",
+        "human_action": "Q2",
+        "corrected": true,
+        "prior": [
+          0.16666667,
+          0.16666667,
+          0.16666667,
+          0.16666667,
+          0.16666667,
+          0.16666667
+        ],
+        "after_correction": [
+          0.29359903,
+          0.03973431,
+          0.16666667,
+          0.29359903,
+          0.16666667,
+          0.03973431
+        ],
+        "clarification_asked": false,
+        "clarification_answer": [],
+        "posterior": [
+          0.29359903,
+          0.03973431,
+          0.16666667,
+          0.29359903,
+          0.16666667,
+          0.03973431
+        ],
+        "entropy_after_correction": 0.87802927,
+        "entropy_after_clarification": 0.87802927
+      },
+      {
+        "timestep": 1,
+        "object_label": "red glass cup",
+        "robot_action": "Q4",
+        "human_action": "Q1",
+        "corrected": true,
+        "prior": [
+          0.29359903,
+          0.03973431,
+          0.16666667,
+          0.29359903,
+          0.16666667,
+          0.03973431
+        ],
+        "after_correction": [
+          0.09381104,
+          0.09381104,
+          0.05325349,
+          0.69317501,
+          0.05325349,
+          0.01269594
+        ],
+        "clarification_asked": false,
+        "clarification_answer": [],
+        "posterior": [
+          0.09381104,
+          0.09381104,
+          0.05325349,
+          0.69317501,
+          0.05325349,
+          0.01269594
+        ],
+        "entropy_after_correction": 0.59484599,
+        "entropy_after_clarification": 0.59484599
+      },
+      {
+        "timestep": 2,
+        "object_label": "purple ceramic bowl",
+        "robot_action": "Q3",
+        "human_action": "Q3",
+        "corrected": false,
+        "prior": [
+          0.09381104,
+          0.09381104,
+          0.05325349,
+          0.69317501,
+          0.05325349,
+          0.01269594
+        ],
+        "after_correction": [
+          0.0948523,
+          0.0948523,
+          0.05384458,
+          0.70086896,
+          0.05384458,
+          0.00173728
+        ],
+        "clarification_asked": false,
+        "clarification_answer": [],
+        "posterior": [
+          0.0948523,
+          0.0948523,
+          0.05384458,
+          0.70086896,
+          0.05384458,
+          0.00173728
+        ],
+        "entropy_after_correction": 0.57017766,
+        "entropy_after_clarification": 0.57017766
+      }
+    ],
+    "final_beliefs": [
+      0.0948523,
+      0.0948523,
+      0.05384458,
+      0.70086896,
+      0.05384458,
+      0.00173728
+    ],
+    "final_true_posterior": 0.70086896
+  },
+  "with_clarification": {
+    "condition": "correction + clarification",
+    "hypothesis_names": [
+      "color",
+      "material",
+      "object type",
+      "color + object type",
+      "material + object type",
+      "color + material"
+    ],
+    "true_hypothesis_index": 3,
+    "beta": 2.0,
+    "clarification_accuracy": 0.8,
+    "clarification_threshold": 0.55,
+    "steps": [
+      {
+        "timestep": 0,
+        "object_label": "yellow glass cup",
+        "robot_action": "Q1",
+        "human_action": "Q2",
+        "corrected": true,
+        "prior": [
+          0.16666667,
+          0.16666667,
+          0.16666667,
+          0.16666667,
+          0.16666667,
+          0.16666667
+        ],
+        "after_correction": [
+          0.29359903,
+          0.03973431,
+          0.16666667,
+          0.29359903,
+          0.16666667,
+          0.03973431
+        ],
+        "clarification_asked": true,
+        "clarification_answer": [
+          "color",
+          "kind"
+        ],
+        "posterior": [
+          0.15610351,
+          0.02112631,
+          0.08861491,
+          0.62441404,
+          0.08861491,
+          0.02112631
+        ],
+        "entropy_after_correction": 0.87802927,
+        "entropy_after_clarification": 0.65660067
+      },
+      {
+        "timestep": 1,
+        "object_label": "red glass cup",
+        "robot_action": "Q1",
+        "human_action": "Q1",
+        "corrected": false,
+        "prior": [
+          0.15610351,
+          0.02112631,
+          0.08861491,
+          0.62441404,
+          0.08861491,
+          0.02112631
+        ],
+        "after_correction": [
+          0.03046283,
+          0.03046283,
+          0.01729276,
+          0.90036613,
+          0.01729276,
+          0.0041227
+        ],
+        "clarification_asked": false,
+        "clarification_answer": [],
+        "posterior": [
+          0.03046283,
+          0.03046283,
+          0.01729276,
+          0.90036613,
+          0.01729276,
+          0.0041227
+        ],
+        "entropy_after_correction": 0.26240786,
+        "entropy_after_clarification": 0.26240786
+      },
+      {
+        "timestep": 2,
+        "object_label": "purple ceramic bowl",
+        "robot_action": "Q3",
+        "human_action": "Q3",
+        "corrected": false,
+        "prior": [
+          0.03046283,
+          0.03046283,
+          0.01729276,
+          0.90036613,
+          0.01729276,
+          0.0041227
+        ],
+        "after_correction": [
+          0.03057181,
+          0.03057181,
+          0.01735463,
+          0.90358719,
+          0.01735463,
+          0.00055994
+        ],
+        "clarification_asked": false,
+        "clarification_answer": [],
+        "posterior": [
+          0.03057181,
+          0.03057181,
+          0.01735463,
+          0.90358719,
+          0.01735463,
+          0.00055994
+        ],
+        "entropy_after_correction": 0.25101451,
+        "entropy_after_clarification": 0.25101451
+      }
+    ],
+    "final_beliefs": [
+      0.03057181,
+      0.03057181,
+      0.01735463,
+      0.90358719,
+      0.01735463,
+      0.00055994
+    ],
+    "final_true_posterior": 0.90358719
+  }
+}

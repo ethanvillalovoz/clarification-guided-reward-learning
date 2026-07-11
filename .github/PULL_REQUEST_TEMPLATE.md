@@ -1,31 +1,24 @@
 # Pull Request
 
-Thank you for contributing. Please keep changes focused and explain how they affect the research prototype.
+## Summary
 
-## Description
+Describe the implementation and the research assumption or behavior it changes.
 
-<!-- Summarize the change and include relevant motivation/context. -->
+## Evidence Scope
 
-Fixes #(issue)
+- Is this a code-path result, simulation result, or empirical result?
+- Which baseline and configuration are held constant?
+- What claim should **not** be inferred from this change?
 
-## Type of change
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Documentation update
-- [ ] Test or CI update
-- [ ] Other (please describe):
+## Validation
 
-## Research behavior
+- [ ] `ruff check src tests`
+- [ ] `pytest -q`
+- [ ] `MPLBACKEND=Agg clarification-reward-demo --output-dir artifacts/check`
+- [ ] Default changes include an intentional update to `examples/reference-trace.json`
+- [ ] Figures and docs were regenerated when assumptions or outputs changed
+- [ ] No result is described more strongly than its evidence supports
 
-<!-- Describe the reward-learning, belief-update, visualization, or experiment behavior this change should preserve or modify. -->
+## Artifacts
 
-## Checklist
-- [ ] I ran `python -m py_compile src/clarification_guided_interaction.py src/multi_object_mdp.py src/utils/console.py`
-- [ ] I ran `python -m unittest discover tests`
-- [ ] I updated documentation when setup, usage, or artifact behavior changed
-- [ ] I included screenshots or generated plots for visualization changes
-- [ ] I avoided committing generated caches, virtual environments, or OS metadata
-
-## Additional context
-
-<!-- Add any other context about the PR here. -->
+Attach or link the relevant trace, comparison, or failure reproduction.
