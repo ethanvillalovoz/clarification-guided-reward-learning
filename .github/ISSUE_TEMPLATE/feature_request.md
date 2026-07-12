@@ -1,20 +1,25 @@
 ---
-name: Feature Request
-about: Suggest an improvement to the research prototype
+name: Research improvement
+about: Propose a scoped inference, evaluation, or reproducibility improvement
 labels: enhancement
 ---
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex: I'm always frustrated when [...]
+## Problem
 
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
+What limitation or research question does this address?
 
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
+## Proposed Change
 
-**Research context**
-If this changes the reward model, belief update, clarification policy, or visualization behavior, describe the intended experiment impact.
+Describe the model, implementation, or evaluation change.
 
-**Additional context**
-Add any other context or screenshots about the feature request here.
+## Assumptions
+
+Which likelihoods, hypotheses, observations, baselines, or thresholds would change?
+
+## Evidence Plan
+
+What deterministic check, simulation comparison, or empirical evidence would support the change?
+
+## Claim Boundary
+
+What conclusion would remain unsupported even if the proposed check succeeds?
