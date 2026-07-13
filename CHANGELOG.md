@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.1.0 - Reproducible Reference Simulation
+## v1.1.0 - Unreleased
 
 ### Added
 
