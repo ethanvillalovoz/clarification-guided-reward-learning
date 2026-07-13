@@ -42,7 +42,7 @@ jobs:
         run: |
           test -s artifacts/ci/trace.json
           test -s artifacts/ci/comparison.png
-          test -s artifacts/ci/belief-update.gif
+          test -s artifacts/ci/belief-update.webp
 
       - name: Upload reference artifacts
         if: matrix.python-version == '3.11'
