@@ -3,7 +3,11 @@ import json
 from pathlib import Path
 
 from .simulation import run_comparison
-from .visualization import save_belief_animation, save_comparison_plot
+from .visualization import (
+    save_belief_animation,
+    save_comparison_plot,
+    save_reasoning_snapshot,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -28,9 +32,13 @@ def main() -> None:
     payload = {name: result.to_dict() for name, result in comparison.items()}
     (args.output_dir / "trace.json").write_text(json.dumps(payload, indent=2) + "\n")
     save_comparison_plot(comparison, args.output_dir / "comparison.png")
+    save_reasoning_snapshot(
+        comparison["with_clarification"],
+        args.output_dir / "reasoning-snapshot.png",
+    )
     save_belief_animation(
         comparison["with_clarification"],
-        args.output_dir / "belief-update.gif",
+        args.output_dir / "belief-update.webp",
     )
 
     correction_only = comparison["correction_only"].final_true_posterior

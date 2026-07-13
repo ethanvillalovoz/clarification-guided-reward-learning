@@ -6,7 +6,7 @@
 
 A compact reference simulation for studying whether feature-level follow-up questions can disambiguate reward hypotheses after a human corrects a robot's state.
 
-![Belief updates in the illustrative simulation](docs/media/belief-update.gif)
+![Correction-only and clarification simulation comparison](docs/media/illustrative-comparison.png)
 
 ## Research Status
 
@@ -39,8 +39,6 @@ The code keeps each assumption explicit in [`inference.py`](src/clarification_re
 
 ## Illustrative Output
 
-![Correction-only and clarification simulation comparison](docs/media/illustrative-comparison.png)
-
 With the default six hand-authored hypotheses, three objects, `beta=2.0`, and clarification likelihood `0.8`:
 
 | Condition | Final posterior on designated true hypothesis | Final normalized entropy |
@@ -67,7 +65,8 @@ The command writes:
 
 - `trace.json`: complete priors, likelihood-driven posteriors, actions, answers, and entropy.
 - `comparison.png`: correction-only versus clarification trajectories.
-- `belief-update.gif`: stage-by-stage belief animation.
+- `reasoning-snapshot.png`: the first correction, clarification answer, and posterior update in one figure.
+- `belief-update.webp`: stage-by-stage belief animation.
 
 A committed [reference trace](examples/reference-trace.json) makes the default configuration inspectable without running Python.
 
