@@ -4,13 +4,13 @@
 [![Python](https://img.shields.io/badge/Python-3.11%2B-222222.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-222222.svg)](LICENSE)
 
-A compact reference simulation for studying whether feature-level follow-up questions can disambiguate reward hypotheses after a human corrects a robot's state.
+A correction tells a robot which state a person preferred. It does not tell the robot why. This simulation tests whether one short follow-up question can separate reward hypotheses that all fit the same corrected state.
 
 ![Correction-only and clarification simulation comparison](docs/media/illustrative-comparison.png)
 
 ## Research Status
 
-This is a simulation prototype from the 2024 Carnegie Mellon Robotics Institute Summer Scholars program. The accompanying working paper explicitly reports that no user-study results were available at the time of writing. The repository therefore makes a narrow claim: it implements and tests the proposed inference mechanism in a fixed toy hypothesis space.
+I started this simulation during the 2024 Carnegie Mellon Robotics Institute Summer Scholars program. The working paper had no user-study results, so the claim here stays narrow: the code implements the proposed inference mechanism and tests it inside a fixed toy hypothesis space.
 
 It does **not** establish that clarification improves real-robot performance, task completion time, user satisfaction, or generalization.
 
