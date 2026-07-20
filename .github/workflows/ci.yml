@@ -27,7 +27,7 @@ jobs:
         run: pip install -e ".[dev]"
 
       - name: Lint
-        run: ruff check src tests
+        run: ruff check src tests scripts
 
       - name: Test
         run: pytest -q
@@ -43,6 +43,9 @@ jobs:
           test -s artifacts/ci/trace.json
           test -s artifacts/ci/comparison.png
           test -s artifacts/ci/belief-update.webp
+          test -s artifacts/ci/system-overview.svg
+          test -s artifacts/ci/system-overview.pdf
+          test -s artifacts/ci/system-overview.png
 
       - name: Upload reference artifacts
         if: matrix.python-version == '3.11'

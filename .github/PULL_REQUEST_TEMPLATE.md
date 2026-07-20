@@ -12,7 +12,7 @@ Describe the implementation and the research assumption or behavior it changes.
 
 ## Validation
 
-- [ ] `ruff check src tests`
+- [ ] `ruff check src tests scripts`
 - [ ] `pytest -q`
 - [ ] `MPLBACKEND=Agg clarification-reward-demo --output-dir artifacts/check`
 - [ ] Default changes include an intentional update to `examples/reference-trace.json`

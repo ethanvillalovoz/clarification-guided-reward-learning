@@ -1,0 +1,58 @@
+{
+  "claim": "In the fixed default simulation, feature clarification disambiguates reward hypotheses left compatible by the same state correction and changes the next selected action.",
+  "figure_id": "system-overview",
+  "inputs": [
+    {
+      "bytes": 6211,
+      "path": "examples/reference-trace.json",
+      "role": "trace",
+      "sha256": "519a233ddf097baa58b17219dfd3ca24b79e38cbd7268cb6266ea483a5821500"
+    },
+    {
+      "bytes": 5241,
+      "path": "src/clarification_reward_learning/simulation.py",
+      "role": "simulation",
+      "sha256": "43d8c8245bfcd3949dc49a39918aa25d0eaa753853cd1b3e542fff37b4b66069"
+    },
+    {
+      "bytes": 3505,
+      "path": "src/clarification_reward_learning/models.py",
+      "role": "problem",
+      "sha256": "fe95daf76956838733a1af3494e8cebbc486ec3a3a7cb917c2d5aa1a612b3751"
+    },
+    {
+      "bytes": 27001,
+      "path": "src/clarification_reward_learning/visualization.py",
+      "role": "renderer",
+      "sha256": "13f534312f1a45be3a93b4c9cab5c6fd460d12435f6ab273052fedb29da085c4"
+    }
+  ],
+  "outputs": [
+    {
+      "bytes": 32148,
+      "path": "docs/media/system-overview.svg",
+      "role": "svg",
+      "sha256": "c68553982b5da9e8e9999d78c5b443859f2ad3e830510d6b3e68b71f169ce2c9"
+    },
+    {
+      "bytes": 41445,
+      "path": "docs/media/system-overview.pdf",
+      "role": "pdf",
+      "sha256": "e9e62ac7c0d377f6440bae87d0e8126ebd5e3d312bd3f8ea0258137fa8b76a8e"
+    },
+    {
+      "bytes": 277957,
+      "path": "docs/media/system-overview.png",
+      "role": "png",
+      "sha256": "78d795509985d8883b269bcfe501178af249354fc5c24c131b266bd7dd266603"
+    }
+  ],
+  "processing_notes": [
+    "All scene geometry, posterior bars, labels, and action comparisons are rendered directly in Matplotlib from the default comparison trace.",
+    "The correction-only and clarification conditions share objects, human actions, correction likelihood, and designated true hypothesis."
+  ],
+  "schema_version": 1,
+  "selection_note": "The first corrected object and immediately following object are selected by temporal order from the deterministic trace, before inspecting outcomes.",
+  "target_width_in": 7.16,
+  "venue": null
+}

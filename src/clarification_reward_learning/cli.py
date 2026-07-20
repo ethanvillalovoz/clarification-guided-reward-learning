@@ -7,6 +7,7 @@ from .visualization import (
     save_belief_animation,
     save_comparison_plot,
     save_reasoning_snapshot,
+    save_system_overview,
 )
 
 
@@ -40,6 +41,7 @@ def main() -> None:
         comparison["with_clarification"],
         args.output_dir / "belief-update.webp",
     )
+    save_system_overview(comparison, args.output_dir / "system-overview")
 
     correction_only = comparison["correction_only"].final_true_posterior
     clarification = comparison["with_clarification"].final_true_posterior

@@ -8,6 +8,8 @@
 - Tested Bradley-Terry correction likelihood, Bayesian normalization, entropy gating, and feature clarification.
 - Deterministic correction-only baseline and committed JSON reference trace.
 - Generated static comparison and animated belief-update artifacts.
+- Evidence-backed system overview with SVG, PDF, and 300 dpi PNG exports.
+- Figure contract, provenance manifest, and final-size PDF preflight workflow.
 - Explicit reproducibility notes, evidence status, limitations, and claim boundaries.
 - Ruff, pytest, Python-version matrix CI, and artifact-contract checks.
 

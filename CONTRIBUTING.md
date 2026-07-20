@@ -21,9 +21,10 @@ pip install -e ".[dev]"
 ## Verification
 
 ```bash
-ruff check src tests
+ruff check src tests scripts
 pytest -q
 MPLBACKEND=Agg clarification-reward-demo --output-dir artifacts/check
+MPLBACKEND=Agg python scripts/render_public_figures.py
 ```
 
 ## Pull Requests
