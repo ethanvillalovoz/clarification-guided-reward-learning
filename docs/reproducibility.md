@@ -20,6 +20,12 @@ pip install -e ".[dev]"
 MPLBACKEND=Agg clarification-reward-demo --output-dir artifacts/latest
 ```
 
+Regenerate the committed README overview from the same default simulation:
+
+```bash
+MPLBACKEND=Agg python scripts/render_public_figures.py
+```
+
 ## Default Configuration
 
 | Parameter | Value |

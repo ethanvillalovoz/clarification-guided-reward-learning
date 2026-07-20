@@ -6,7 +6,9 @@
 
 A correction tells a robot which state a person preferred. It does not tell the robot why. This simulation tests whether one short follow-up question can separate reward hypotheses that all fit the same corrected state.
 
-![Correction-only and clarification simulation comparison](docs/media/illustrative-comparison.png)
+[![System overview of a state correction, clarification question, posterior update, and next action](docs/media/system-overview.svg)](docs/media/system-overview.pdf)
+
+The overview follows the first two objects in the committed default trace. The yellow cup correction leaves several reward hypotheses compatible; an entropy-gated feature question increases the designated true hypothesis from `0.294` to `0.624`. On the next red cup, correction-only selects `Q4` and is corrected to `Q1`, while the clarification condition selects `Q1` directly. These are deterministic consequences of one toy configuration, not participant or real-robot results. [Vector PDF](docs/media/system-overview.pdf) · [figure contract and provenance](docs/figures/system-overview/)
 
 ## Research Status
 
@@ -48,6 +50,8 @@ With the default six hand-authored hypotheses, three objects, `beta=2.0`, and cl
 
 These values are a deterministic code-path check, not an empirical result. Change the hypothesis space, feature noise, threshold, objects, or true model and the trace changes.
 
+![Correction-only and clarification posterior and entropy trajectories](docs/media/illustrative-comparison.png)
+
 ## Reproduce It
 
 ```bash
@@ -67,13 +71,14 @@ The command writes:
 - `comparison.png`: correction-only versus clarification trajectories.
 - `reasoning-snapshot.png`: the first correction, clarification answer, and posterior update in one figure.
 - `belief-update.webp`: stage-by-stage belief animation.
+- `system-overview.{svg,pdf,png}`: wide method overview and next-object consequence.
 
 A committed [reference trace](examples/reference-trace.json) makes the default configuration inspectable without running Python.
 
 ## Verification
 
 ```bash
-ruff check src tests
+ruff check src tests scripts
 pytest -q
 MPLBACKEND=Agg clarification-reward-demo --output-dir artifacts/check
 ```
@@ -87,11 +92,12 @@ src/clarification_reward_learning/
   models.py          objects, reward hypotheses, and default toy problem
   inference.py       likelihoods, Bayesian updates, entropy, and action selection
   simulation.py      correction-only and clarification experiment traces
-  visualization.py   static comparison and animated belief artifacts
+  visualization.py   static, animated, and vector system-overview artifacts
   cli.py             reproducible command-line entry point
 tests/               focused inference and simulation regression tests
 examples/            committed default trace
 docs/                RISS paper, poster, slides, video, and method notes
+scripts/             committed public-figure regeneration
 ```
 
 ## Research Artifacts
